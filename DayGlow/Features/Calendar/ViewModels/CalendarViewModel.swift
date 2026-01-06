@@ -4,16 +4,37 @@
 //
 //  ViewModel for managing calendar navigation state
 //
+//  Performance optimized with cached day calculations
+//
 
 import Foundation
 import Observation
+
+// MARK: - Cached DateFormatter (Performance)
+private extension DateFormatter {
+    static let monthYearFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter
+    }()
+}
 
 @Observable
 final class CalendarViewModel {
     // MARK: - Properties
     var selectedDate: Date
-    var currentMonth: Date
+    var currentMonth: Date {
+        didSet {
+            // Invalidate cache when month changes
+            _cachedDays = nil
+            _cachedMonth = nil
+        }
+    }
     var displayMode: CalendarDisplayMode = .month
+
+    // MARK: - Performance Cache
+    private var _cachedDays: [Date]?
+    private var _cachedMonth: Date?
 
     // MARK: - Display Mode
     enum CalendarDisplayMode {
@@ -22,11 +43,10 @@ final class CalendarViewModel {
         case day
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Computed Properties (with caching)
     var currentMonthFormatted: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: currentMonth)
+        // Use cached formatter
+        DateFormatter.monthYearFormatter.string(from: currentMonth)
     }
 
     var isSelectedDateToday: Bool {
@@ -69,8 +89,23 @@ final class CalendarViewModel {
         currentMonth = today
     }
 
-    // MARK: - Helper Methods
+    // MARK: - Helper Methods (with caching for performance)
     func daysInCurrentMonth() -> [Date] {
+        // Check cache validity
+        if let cached = _cachedDays,
+           let cachedMonth = _cachedMonth,
+           Calendar.current.isDate(cachedMonth, equalTo: currentMonth, toGranularity: .month) {
+            return cached
+        }
+
+        // Recompute and cache
+        let days = computeDaysInCurrentMonth()
+        _cachedDays = days
+        _cachedMonth = currentMonth
+        return days
+    }
+
+    private func computeDaysInCurrentMonth() -> [Date] {
         guard let range = Calendar.current.range(of: .day, in: .month, for: currentMonth) else {
             return []
         }

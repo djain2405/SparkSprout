@@ -34,6 +34,75 @@ struct Theme {
         static let eventDot = primary
     }
 
+    // MARK: - Gradients
+    struct Gradients {
+        /// Purple to blue gradient for stats header
+        static let purpleBlue = LinearGradient(
+            colors: [
+                Color(red: 0.5, green: 0.3, blue: 0.9),
+                Color(red: 0.3, green: 0.5, blue: 1.0)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        /// Gold gradient for streaks and achievements
+        static let gold = LinearGradient(
+            colors: [
+                Color(red: 1.0, green: 0.84, blue: 0.0),
+                Color(red: 1.0, green: 0.65, blue: 0.0)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        /// Sunset orange gradient for highlights
+        static let sunsetOrange = LinearGradient(
+            colors: [
+                Color(red: 1.0, green: 0.6, blue: 0.2),
+                Color(red: 1.0, green: 0.4, blue: 0.4)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        /// Dynamic event density gradient for calendar heatmap
+        /// - Parameter intensity: 0.0 (no events) to 1.0 (many events)
+        static func eventDensity(intensity: Double) -> LinearGradient {
+            let clampedIntensity = max(0.0, min(1.0, intensity))
+
+            if clampedIntensity == 0.0 {
+                return LinearGradient(
+                    colors: [Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+
+            let baseColor = Color(red: 0.4, green: 0.5, blue: 1.0)
+            let intensityColor = baseColor.opacity(0.2 + (clampedIntensity * 0.6))
+
+            return LinearGradient(
+                colors: [intensityColor, intensityColor.opacity(0.8)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+
+        /// Celebration gradient with rainbow colors
+        static let celebration = LinearGradient(
+            colors: [
+                Color(red: 1.0, green: 0.3, blue: 0.3),
+                Color(red: 1.0, green: 0.8, blue: 0.2),
+                Color(red: 0.3, green: 0.9, blue: 0.3),
+                Color(red: 0.3, green: 0.6, blue: 1.0),
+                Color(red: 0.7, green: 0.3, blue: 1.0)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
     // MARK: - Typography
     struct Typography {
         static let largeTitle = Font.system(size: 34, weight: .bold)
@@ -78,6 +147,86 @@ struct Theme {
         static let standard = SwiftUI.Animation.easeInOut(duration: 0.3)
         static let slow = SwiftUI.Animation.easeInOut(duration: 0.5)
         static let spring = SwiftUI.Animation.spring(response: 0.3, dampingFraction: 0.7)
+
+        /// Bouncy spring animation with low damping for playful interactions
+        static let bouncy = SwiftUI.Animation.spring(
+            response: 0.4,
+            dampingFraction: 0.5,
+            blendDuration: 0
+        )
+
+        /// Continuous pulse animation for attention-grabbing elements
+        static let pulse = SwiftUI.Animation
+            .easeInOut(duration: 1.0)
+            .repeatForever(autoreverses: true)
+
+        /// Staggered animation for list entrance effects
+        /// - Parameters:
+        ///   - index: Item index in the list
+        ///   - total: Total number of items
+        /// - Returns: Animation with calculated delay
+        static func staggered(index: Int, total: Int) -> SwiftUI.Animation {
+            let delay = Double(index) * 0.05
+            return SwiftUI.Animation
+                .spring(response: 0.4, dampingFraction: 0.7)
+                .delay(delay)
+        }
+
+        /// Confetti celebration animation
+        static let confetti = SwiftUI.Animation.spring(
+            response: 0.6,
+            dampingFraction: 0.4,
+            blendDuration: 0
+        )
+
+        /// Wiggle rotation animation for playful feedback
+        static let wiggle = SwiftUI.Animation
+            .spring(response: 0.3, dampingFraction: 0.3)
+            .repeatCount(3, autoreverses: true)
+    }
+
+    // MARK: - Haptics
+    struct Haptics {
+        /// Light haptic feedback for subtle interactions
+        static func light() {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+        }
+
+        /// Success haptic feedback for completed actions
+        static func success() {
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        }
+
+        /// Multi-haptic celebration for achievements and milestones
+        static func celebration() {
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+
+            // Add additional impacts for emphasis
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                let impact = UIImpactFeedbackGenerator(style: .heavy)
+                impact.impactOccurred()
+            }
+        }
+
+        /// Warning haptic for conflicts or errors
+        static func warning() {
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.warning)
+        }
+
+        /// Error haptic for failures
+        static func error() {
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.error)
+        }
     }
 }
 

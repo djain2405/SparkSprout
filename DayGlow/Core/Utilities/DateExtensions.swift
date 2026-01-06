@@ -4,8 +4,35 @@
 //
 //  Date helper extensions and utilities
 //
+//  Performance optimized with cached DateFormatters
+//
 
 import Foundation
+
+// MARK: - Cached DateFormatters (Performance Optimization)
+private extension DateFormatter {
+    /// Cached time formatter (e.g., "2:30 PM")
+    static let cachedTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    /// Cached date formatter (e.g., "Jan 15, 2026")
+    static let cachedDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter
+    }()
+
+    /// Cached date-time formatter
+    static let cachedDateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+}
 
 extension Date {
     /// Returns the start of the day (midnight) for this date
@@ -73,25 +100,21 @@ extension Date {
     }
 
     /// Returns a formatted string for time (e.g., "2:30 PM")
+    /// Uses cached DateFormatter for performance
     var timeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: self)
+        DateFormatter.cachedTimeFormatter.string(from: self)
     }
 
     /// Returns a formatted string for date (e.g., "Jan 15, 2026")
+    /// Uses cached DateFormatter for performance
     var dateString: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: self)
+        DateFormatter.cachedDateFormatter.string(from: self)
     }
 
     /// Returns a formatted string for date and time
+    /// Uses cached DateFormatter for performance
     var dateTimeString: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: self)
+        DateFormatter.cachedDateTimeFormatter.string(from: self)
     }
 
     /// Returns a relative time string (e.g., "Today", "Yesterday", "2 days ago")

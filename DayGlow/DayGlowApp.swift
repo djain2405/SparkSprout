@@ -4,17 +4,34 @@
 //
 //  Main app entry point
 //
+//  Configured with Dependency Injection for clean architecture
+//
 
 import SwiftUI
 import SwiftData
 
 @main
 struct DayGlowApp: App {
+    @State private var dependenciesConfigured = false
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.dependencies, DependencyContainer.shared)
+                .task {
+                    if !dependenciesConfigured {
+                        // Configure dependencies on app launch
+                        await configureDependencies()
+                        dependenciesConfigured = true
+                    }
+                }
         }
         .modelContainer(ModelContainer.shared)
+    }
+
+    @MainActor
+    private func configureDependencies() async {
+        DependencyContainer.shared.configure(modelContext: ModelContainer.shared.mainContext)
     }
 }
 
@@ -40,108 +57,127 @@ struct ContentView: View {
 
 // MARK: - Recap/Highlights View
 struct RecapView: View {
-    @Query(sort: \DayEntry.date, order: .reverse) private var allDayEntries: [DayEntry]
-
-    private var highlightsOnly: [DayEntry] {
-        allDayEntries.filter { $0.hasHighlight }
-    }
-
-    private var stats: HighlightService.HighlightStats {
-        HighlightService.calculateStats(from: allDayEntries)
-    }
+    @Environment(\.dependencies) private var dependencies
+    @State private var viewModel: RecapViewModel?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.Spacing.lg) {
                     // Stats Card
-                    if !highlightsOnly.isEmpty {
-                        statsCard
-                    }
+                    if let viewModel = viewModel {
+                        if !viewModel.highlightEntries.isEmpty {
+                            if viewModel.isLoading {
+                                statsCardSkeleton
+                            } else if let stats = viewModel.stats {
+                                statsCard(with: stats)
+                            }
+                        }
 
-                    // Highlights List
-                    if highlightsOnly.isEmpty {
-                        emptyStateView
-                    } else {
-                        highlightsList
+                        // Highlights List
+                        if viewModel.highlightEntries.isEmpty {
+                            emptyStateView
+                        } else {
+                            highlightsList(entries: viewModel.highlightEntries)
+                        }
                     }
                 }
                 .padding()
             }
             .navigationTitle("Highlights")
+            .task {
+                if viewModel == nil {
+                    viewModel = dependencies.makeRecapViewModel()
+                }
+                await viewModel?.loadData()
+            }
+            .refreshable {
+                await viewModel?.refresh()
+            }
         }
     }
 
-    // MARK: - Stats Card
-    private var statsCard: some View {
+    // Loading skeleton
+    private var statsCardSkeleton: some View {
         VStack(spacing: Theme.Spacing.md) {
             HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(.blue)
-                Text("Your Progress")
-                    .font(Theme.Typography.headline)
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading stats...")
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
                 Spacer()
             }
+        }
+        .padding()
+        .background(Theme.Colors.cardBackground)
+        .cornerRadius(Theme.CornerRadius.medium)
+    }
 
+    // MARK: - Stats Card
+    private func statsCard(with stats: HighlightService.HighlightStats) -> some View {
+        VStack(spacing: Theme.Spacing.lg) {
+            // Header with gradient
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .foregroundStyle(.white)
+                Text("Your Progress")
+                    .font(Theme.Typography.headline)
+                    .foregroundStyle(.white)
+                Spacer()
+            }
+            .padding()
+            .background(Theme.Gradients.purpleBlue)
+            .cornerRadius(Theme.CornerRadius.medium)
+
+            // Progress rings
             HStack(spacing: Theme.Spacing.lg) {
-                statItem(
+                StatRing(
                     value: "\(stats.currentStreak)",
                     label: "Current Streak",
-                    icon: "flame.fill",
-                    color: .orange
+                    progress: min(Double(stats.currentStreak) / 30.0, 1.0),
+                    color: .orange,
+                    icon: "flame.fill"
                 )
 
-                statItem(
+                StatRing(
                     value: "\(stats.totalDays)",
                     label: "Total Days",
-                    icon: "star.fill",
-                    color: .yellow
+                    progress: min(Double(stats.totalDays) / 100.0, 1.0),
+                    color: .yellow,
+                    icon: "star.fill"
                 )
 
-                statItem(
+                StatRing(
                     value: "\(stats.longestStreak)",
                     label: "Best Streak",
-                    icon: "trophy.fill",
-                    color: Color(hex: "#FFD700") ?? .yellow
+                    progress: min(Double(stats.longestStreak) / 30.0, 1.0),
+                    color: Color(red: 1.0, green: 0.84, blue: 0.0),
+                    icon: "trophy.fill"
                 )
             }
+            .padding(.horizontal)
 
             // Encouragement message
             Text(stats.encouragementMessage)
                 .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.top, Theme.Spacing.xs)
+                .padding(.horizontal)
+                .padding(.bottom, Theme.Spacing.xs)
         }
-        .padding()
         .background(Theme.Colors.cardBackground)
-        .cornerRadius(Theme.CornerRadius.medium)
+        .cornerRadius(Theme.CornerRadius.large)
         .shadow(
-            color: Theme.Shadow.small.color,
-            radius: Theme.Shadow.small.radius,
-            x: Theme.Shadow.small.x,
-            y: Theme.Shadow.small.y
+            color: Theme.Shadow.medium.color,
+            radius: Theme.Shadow.medium.radius,
+            x: Theme.Shadow.medium.x,
+            y: Theme.Shadow.medium.y
         )
     }
 
-    private func statItem(value: String, label: String, icon: String, color: Color) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-            Text(value)
-                .font(Theme.Typography.title2)
-                .fontWeight(.bold)
-            Text(label)
-                .font(Theme.Typography.caption2)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     // MARK: - Highlights List
-    private var highlightsList: some View {
+    private func highlightsList(entries: [DayEntry]) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             HStack {
                 Image(systemName: "sparkles")
@@ -151,21 +187,36 @@ struct RecapView: View {
                 Spacer()
             }
 
-            ForEach(highlightsOnly) { entry in
+            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                 highlightCard(entry: entry)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+                    .animation(
+                        Theme.Animation.staggered(index: index, total: entries.count),
+                        value: entries.count
+                    )
             }
         }
     }
 
     private func highlightCard(entry: DayEntry) -> some View {
         HStack(alignment: .top, spacing: Theme.Spacing.md) {
-            if let emoji = entry.moodEmoji {
-                Text(emoji)
-                    .font(.system(size: 40))
-            } else {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(.yellow)
+            // Emoji or star with gradient background
+            ZStack {
+                Circle()
+                    .fill(Theme.Gradients.sunsetOrange.opacity(0.2))
+                    .frame(width: 60, height: 60)
+
+                if let emoji = entry.moodEmoji {
+                    Text(emoji)
+                        .font(.system(size: 36))
+                } else {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.yellow)
+                }
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -191,7 +242,13 @@ struct RecapView: View {
             Spacer()
         }
         .padding()
-        .background(Theme.Colors.cardBackground)
+        .background(
+            LinearGradient(
+                colors: [Theme.Colors.cardBackground, Theme.Colors.cardBackground.opacity(0.95)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .cornerRadius(Theme.CornerRadius.medium)
         .shadow(
             color: Theme.Shadow.small.color,

@@ -29,6 +29,9 @@ extension ModelContainer {
                 configurations: [configuration]
             )
 
+            // Clean up any duplicate day entries from previous versions
+            cleanupDuplicateDayEntries(container: container)
+
             // Seed default templates on first launch
             seedTemplatesIfNeeded(container: container)
 
@@ -40,6 +43,45 @@ extension ModelContainer {
             fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
         }
     }()
+
+    /// Removes duplicate DayEntry objects for the same date
+    private static func cleanupDuplicateDayEntries(container: ModelContainer) {
+        let context = container.mainContext
+
+        do {
+            let fetchDescriptor = FetchDescriptor<DayEntry>(
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+            let allEntries = try context.fetch(fetchDescriptor)
+
+            // Group by normalized date
+            var entriesByDate: [Date: [DayEntry]] = [:]
+            for entry in allEntries {
+                let normalizedDate = Calendar.current.startOfDay(for: entry.date)
+                entriesByDate[normalizedDate, default: []].append(entry)
+            }
+
+            // Find and remove duplicates
+            var duplicatesRemoved = 0
+            for (_, entries) in entriesByDate where entries.count > 1 {
+                // Keep the entry with a highlight, or the first one if none have highlights
+                let toKeep = entries.first { $0.hasHighlight } ?? entries.first!
+                let toDelete = entries.filter { $0.id != toKeep.id }
+
+                for duplicate in toDelete {
+                    context.delete(duplicate)
+                    duplicatesRemoved += 1
+                }
+            }
+
+            if duplicatesRemoved > 0 {
+                try context.save()
+                print("🧹 Cleaned up \(duplicatesRemoved) duplicate day entries")
+            }
+        } catch {
+            print("⚠️ Failed to cleanup duplicates: \(error.localizedDescription)")
+        }
+    }
 
     /// Seeds default templates if they don't already exist
     private static func seedTemplatesIfNeeded(container: ModelContainer) {
@@ -73,14 +115,16 @@ extension ModelContainer {
     private static func seedSampleDataIfNeeded(container: ModelContainer) {
         let context = container.mainContext
 
-        // Check if any events already exist
-        let eventFetchDescriptor = FetchDescriptor<Event>()
-
         do {
-            let existingEvents = try context.fetch(eventFetchDescriptor)
+            // Check if any events or day entries already exist
+            let eventFetchDescriptor = FetchDescriptor<Event>()
+            let dayEntryFetchDescriptor = FetchDescriptor<DayEntry>()
 
-            // Only seed if no events exist (first launch)
-            if existingEvents.isEmpty {
+            let existingEvents = try context.fetch(eventFetchDescriptor)
+            let existingEntries = try context.fetch(dayEntryFetchDescriptor)
+
+            // Only seed if both events and day entries are empty (first launch)
+            if existingEvents.isEmpty && existingEntries.isEmpty {
                 print("📝 Seeding sample data for demo...")
 
                 let today = Date()
@@ -171,7 +215,7 @@ extension ModelContainer {
                 try context.save()
                 print("✅ Successfully seeded sample data (events and highlights)")
             } else {
-                print("✅ Sample data already exists (\(existingEvents.count) events found)")
+                print("✅ Sample data already exists (\(existingEvents.count) events, \(existingEntries.count) day entries found)")
             }
         } catch {
             print("⚠️ Failed to seed sample data: \(error.localizedDescription)")

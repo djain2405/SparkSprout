@@ -43,6 +43,7 @@ struct HomeCalendarView: View {
                     MonthGridView(
                         paddedDays: viewModel.paddedDaysForGrid(),
                         selectedDate: viewModel.selectedDate,
+                        month: viewModel.currentMonth,
                         onDateSelected: { date in
                             withAnimation(Theme.Animation.quick) {
                                 viewModel.selectDate(date)

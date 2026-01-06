@@ -15,9 +15,19 @@ struct DayCell: View {
     let moodEmoji: String?
     let eventCount: Int
 
+    @State private var isPressed = false
+    @State private var starScale: CGFloat = 1.0
+
     var body: some View {
         VStack(spacing: 4) {
             ZStack {
+                // Event density gradient background
+                if eventCount > 0 {
+                    Circle()
+                        .fill(Theme.Gradients.eventDensity(intensity: eventIntensity))
+                        .frame(width: 40, height: 40)
+                }
+
                 // Day number with improved background
                 Text("\(Calendar.current.component(.day, from: date))")
                     .font(Theme.Typography.body)
@@ -31,16 +41,23 @@ struct DayCell: View {
                             .strokeBorder(borderColor, lineWidth: borderWidth)
                     )
                     .overlay(alignment: .topTrailing) {
-                        // Highlight star badge - positioned as overlay to avoid masking
+                        // Highlight star badge with pulse animation
                         if hasHighlight {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(starColor)
                                 .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+                                .scaleEffect(starScale)
                                 .offset(x: 3, y: -3)
+                                .onAppear {
+                                    withAnimation(Theme.Animation.pulse) {
+                                        starScale = 1.2
+                                    }
+                                }
                         }
                     }
             }
+            .scaleEffect(isPressed ? 0.9 : 1.0)
 
             // Event count dots
             if eventCount > 0 {
@@ -69,9 +86,15 @@ struct DayCell: View {
         }
         .frame(height: 70)
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle()) // Make entire area tappable
     }
 
     // MARK: - Computed Properties
+
+    private var eventIntensity: Double {
+        // Map event count to intensity (0.0 to 1.0)
+        min(Double(eventCount) / 5.0, 1.0)
+    }
     private var textColor: Color {
         if isSelected {
             return .white

@@ -13,38 +13,92 @@ struct StreakIndicator: View {
     var showAnimation: Bool = true
 
     @State private var scale: CGFloat = 1.0
+    @State private var emojiGlow: CGFloat = 0
+    @State private var showMilestoneConfetti = false
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 4) {
-                Text(streakEmoji)
-                    .font(.title)
-                    .scaleEffect(scale)
-
-                Text("\(streak)")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(.orange)
-
-                Text("day\(streak == 1 ? "" : "s")")
-                    .font(.title3)
-                    .foregroundStyle(Theme.Colors.textSecondary)
+        ZStack {
+            // Confetti overlay for milestones
+            if showMilestoneConfetti {
+                ConfettiView(trigger: showMilestoneConfetti)
             }
 
-            if let message = encouragementMessage {
-                Text(message)
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    // Animated flame emoji with glow
+                    Text(streakEmoji)
+                        .font(.title)
+                        .scaleEffect(scale)
+                        .shadow(
+                            color: streakGlowColor.opacity(emojiGlow),
+                            radius: 12,
+                            x: 0,
+                            y: 0
+                        )
+
+                    // Streak count with gradient for high streaks
+                    if streak >= 7 {
+                        Text("\(streak)")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundStyle(Theme.Gradients.gold)
+                    } else {
+                        Text("\(streak)")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundStyle(.orange)
+                    }
+
+                    Text("day\(streak == 1 ? "" : "s")")
+                        .font(.title3)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+
+                if let message = encouragementMessage {
+                    Text(message)
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
             }
+            .padding()
+            .background(streakBackgroundGradient)
+            .cornerRadius(Theme.CornerRadius.medium)
         }
-        .padding()
-        .background(streakBackgroundColor)
-        .cornerRadius(Theme.CornerRadius.medium)
         .onAppear {
             if showAnimation {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.6).repeatCount(3, autoreverses: true)) {
+                // Continuous pulse animation
+                withAnimation(Theme.Animation.pulse) {
                     scale = 1.2
                 }
+
+                // Glow pulse
+                withAnimation(Theme.Animation.pulse) {
+                    emojiGlow = 0.8
+                }
+
+                // Check for milestone confetti
+                checkForMilestone()
+            }
+        }
+        .onChange(of: streak) { oldValue, newValue in
+            if newValue > oldValue {
+                checkForMilestone()
+            }
+        }
+    }
+
+    // MARK: - Methods
+
+    private func checkForMilestone() {
+        if let _ = Milestone.fromStreakCount(streak) {
+            // Trigger confetti for milestones
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                showMilestoneConfetti = true
+                Theme.Haptics.celebration()
+            }
+
+            // Reset confetti after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.3) {
+                showMilestoneConfetti = false
             }
         }
     }
@@ -67,13 +121,29 @@ struct StreakIndicator: View {
         }
     }
 
-    private var streakBackgroundColor: Color {
-        if streak >= 7 {
-            return .orange.opacity(0.1)
+    private var streakBackgroundGradient: some ShapeStyle {
+        if streak >= 30 {
+            // Rainbow gradient for 30+ day streaks
+            return AnyShapeStyle(Theme.Gradients.celebration.opacity(0.2))
+        } else if streak >= 7 {
+            // Gold gradient for 7+ day streaks
+            return AnyShapeStyle(Theme.Gradients.gold.opacity(0.15))
         } else if streak >= 3 {
-            return .yellow.opacity(0.1)
+            return AnyShapeStyle(Color.yellow.opacity(0.1))
         } else {
-            return Theme.Colors.cardBackground
+            return AnyShapeStyle(Theme.Colors.cardBackground)
+        }
+    }
+
+    private var streakGlowColor: Color {
+        if streak >= 30 {
+            return .purple
+        } else if streak >= 14 {
+            return .red
+        } else if streak >= 7 {
+            return .orange
+        } else {
+            return .yellow
         }
     }
 }

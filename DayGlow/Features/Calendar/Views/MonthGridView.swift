@@ -4,17 +4,19 @@
 //
 //  Month calendar grid with 7-column layout
 //
+//  Refactored with ViewModel + Repository pattern for clean architecture
+//
 
 import SwiftUI
-import SwiftData
 
 struct MonthGridView: View {
     let paddedDays: [Date?]
     let selectedDate: Date
+    let month: Date
     let onDateSelected: (Date) -> Void
 
-    @Query private var dayEntries: [DayEntry]
-    @Query private var events: [Event]
+    @Environment(\.dependencies) private var dependencies
+    @State private var viewModel: MonthGridViewModel?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
@@ -37,13 +39,20 @@ struct MonthGridView: View {
                         date: date,
                         isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate),
                         isToday: Calendar.current.isDateInToday(date),
-                        hasHighlight: dayEntry(for: date)?.hasHighlight ?? false,
-                        moodEmoji: dayEntry(for: date)?.moodEmoji,
-                        eventCount: eventCount(for: date)
+                        hasHighlight: viewModel?.dayEntry(for: date)?.hasHighlight ?? false,
+                        moodEmoji: viewModel?.dayEntry(for: date)?.moodEmoji,
+                        eventCount: viewModel?.eventCount(for: date) ?? 0
                     )
                     .onTapGesture {
+                        // Haptic feedback on tap
+                        Theme.Haptics.light()
                         onDateSelected(date)
                     }
+                    .transition(.scale.combined(with: .opacity))
+                    .animation(
+                        Theme.Animation.staggered(index: index, total: paddedDays.count),
+                        value: viewModel?.isLoading
+                    )
                 } else {
                     // Empty cell for padding
                     Color.clear
@@ -52,15 +61,18 @@ struct MonthGridView: View {
             }
         }
         .padding(.horizontal, Theme.Spacing.md)
-    }
-
-    // MARK: - Helper Methods
-    private func dayEntry(for date: Date) -> DayEntry? {
-        dayEntries.first { Calendar.current.isDate($0.date, inSameDayAs: date) }
-    }
-
-    private func eventCount(for date: Date) -> Int {
-        events.filter { Calendar.current.isDate($0.startDate, inSameDayAs: date) }.count
+        .task(id: month) {
+            if viewModel == nil {
+                viewModel = dependencies.makeMonthGridViewModel()
+            }
+            await viewModel?.loadData(for: month)
+        }
+        .overlay {
+            if viewModel?.isLoading == true {
+                ProgressView()
+                    .scaleEffect(1.5)
+            }
+        }
     }
 }
 
@@ -95,13 +107,13 @@ struct MonthGridView: View {
         return paddedDays
     }()
 
-    return MonthGridView(
+    MonthGridView(
         paddedDays: paddedDays,
         selectedDate: today,
+        month: today,
         onDateSelected: { date in
             print("Selected: \(date)")
         }
     )
-    .modelContainer(ModelContainer.preview)
     .padding()
 }

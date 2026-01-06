@@ -4,6 +4,8 @@
 //
 //  Card for adding/editing daily highlights
 //
+//  Performance optimized: stable prompt (doesn't change on every render)
+//
 
 import SwiftUI
 import SwiftData
@@ -19,10 +21,7 @@ struct HighlightCardView: View {
     @State private var isEditing: Bool = false
     @State private var showEmojiPicker: Bool = false
     @State private var showingDeleteConfirmation: Bool = false
-
-    private var prompt: String {
-        HighlightService.randomPrompt()
-    }
+    @State private var prompt: String = HighlightService.randomPrompt()
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {

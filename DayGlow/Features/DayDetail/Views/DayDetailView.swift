@@ -4,6 +4,8 @@
 //
 //  Complete day detail view showing schedule and highlight
 //
+//  Refactored with ViewModel + Repository pattern for clean architecture
+//
 
 import SwiftUI
 import SwiftData
@@ -13,23 +15,17 @@ struct DayDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dependencies) private var dependencies
 
-    @Query private var allEvents: [Event]
-    @Query private var allDayEntries: [DayEntry]
-
+    @State private var viewModel: DayDetailViewModel?
     @State private var showingAddEvent = false
     @State private var selectedEvent: Event?
     @State private var showingTemplates = false
 
-    // Filter events for this specific day
-    private var dayEvents: [Event] {
-        allEvents.filter { Calendar.current.isDate($0.startDate, inSameDayAs: date) }
-    }
-
     // Get day entry for this date (binding-compatible)
     private var dayEntryBinding: Binding<DayEntry?> {
         Binding(
-            get: { allDayEntries.first { Calendar.current.isDate($0.date, inSameDayAs: date) } },
+            get: { viewModel?.dayEntry },
             set: { _ in }
         )
     }
@@ -73,12 +69,14 @@ struct DayDetailView: View {
                         .padding(.vertical, Theme.Spacing.sm)
 
                     // Schedule
-                    DayScheduleView(
-                        events: dayEvents,
-                        onEventTap: { event in
-                            selectedEvent = event
-                        }
-                    )
+                    if let viewModel = viewModel {
+                        DayScheduleView(
+                            events: viewModel.events,
+                            onEventTap: { event in
+                                selectedEvent = event
+                            }
+                        )
+                    }
                 }
                 .padding()
             }
@@ -105,6 +103,15 @@ struct DayDetailView: View {
                             .font(.title3)
                     }
                 }
+            }
+            .task {
+                if viewModel == nil {
+                    viewModel = dependencies.makeDayDetailViewModel(for: date)
+                }
+                await viewModel?.loadData()
+            }
+            .refreshable {
+                await viewModel?.loadData()
             }
             .sheet(isPresented: $showingAddEvent) {
                 AddEditEventView(date: date)

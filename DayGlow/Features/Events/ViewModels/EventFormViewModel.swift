@@ -24,6 +24,9 @@ final class EventFormViewModel {
     var showConflictWarning: Bool = false
     var isValidating: Bool = false
 
+    // MARK: - Dependencies (optional for backward compatibility)
+    private let eventRepository: EventRepository?
+
     // MARK: - Computed Properties
     var isValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -53,7 +56,9 @@ final class EventFormViewModel {
     }
 
     // MARK: - Initialization
-    init(event: Event? = nil, defaultStartDate: Date = Date()) {
+    init(event: Event? = nil, defaultStartDate: Date = Date(), eventRepository: EventRepository? = nil) {
+        self.eventRepository = eventRepository
+
         if let event = event {
             // Editing existing event
             self.title = event.title
@@ -75,6 +80,8 @@ final class EventFormViewModel {
     }
 
     // MARK: - Validation Methods
+
+    /// Detect conflicts using provided events array (backward compatible)
     func detectConflicts(in events: [Event], excludingEventId: UUID? = nil) {
         isValidating = true
 
@@ -100,6 +107,52 @@ final class EventFormViewModel {
         if hasConflicts {
             showConflictWarning = true
         }
+    }
+
+    /// Detect conflicts using repository (async, DI-based approach)
+    @MainActor
+    func detectConflictsAsync(excludingEventId: UUID? = nil) async {
+        guard let repository = eventRepository else {
+            print("Warning: EventRepository not injected, cannot detect conflicts asynchronously")
+            return
+        }
+
+        isValidating = true
+
+        do {
+            // Fetch events in the time range that could conflict
+            let calendar = Calendar.current
+            let dayStart = calendar.startOfDay(for: startDate)
+            let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? endDate
+            let range = DateInterval(start: dayStart, end: dayEnd)
+
+            let events = try await repository.fetchEvents(in: range)
+
+            let tempEvent = Event(
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                location: location.isEmpty ? nil : location,
+                notes: notes.isEmpty ? nil : notes,
+                eventType: eventType,
+                isFlexible: isFlexible
+            )
+
+            conflicts = ConflictDetector.detectConflicts(
+                for: tempEvent,
+                in: events,
+                excludingEventId: excludingEventId
+            )
+
+            // Show warning if there are conflicts
+            if hasConflicts {
+                showConflictWarning = true
+            }
+        } catch {
+            print("Error detecting conflicts: \(error)")
+        }
+
+        isValidating = false
     }
 
     func clearConflicts() {
