@@ -168,11 +168,18 @@ struct ConflictDetector {
         var suggestions: [Date] = []
         let calendar = Calendar.current
 
-        // Try hourly slots throughout the day
-        for hour in preferredStartHour...preferredEndHour {
+        // Try 15-minute increments throughout the day for better slot detection
+        let incrementMinutes = 15
+        let startMinute = preferredStartHour * 60
+        let endMinute = preferredEndHour * 60
+
+        for minute in stride(from: startMinute, to: endMinute, by: incrementMinutes) {
+            let hour = minute / 60
+            let min = minute % 60
+
             guard let startDate = calendar.date(
                 bySettingHour: hour,
-                minute: 0,
+                minute: min,
                 second: 0,
                 of: date
             ) else { continue }
@@ -190,5 +197,119 @@ struct ConflictDetector {
         }
 
         return suggestions
+    }
+
+    /// Find the next available time slot that can fit the event duration
+    /// - Parameters:
+    ///   - duration: Duration of the event in seconds
+    ///   - startingFrom: The date to start searching from
+    ///   - existingEvents: All existing events to check against
+    ///   - searchDays: Number of days to search forward (default: 7)
+    ///   - preferredStartHour: Preferred earliest hour (default: 8 AM)
+    ///   - preferredEndHour: Preferred latest hour (default: 20 PM / 8 PM)
+    /// - Returns: The start date of the next available slot, or nil if none found
+    static func findNextAvailableSlot(
+        duration: TimeInterval,
+        startingFrom: Date,
+        in existingEvents: [Event],
+        searchDays: Int = 7,
+        preferredStartHour: Int = 8,
+        preferredEndHour: Int = 20
+    ) -> Date? {
+        let calendar = Calendar.current
+        let incrementMinutes = 15
+
+        // Search across multiple days
+        for dayOffset in 0..<searchDays {
+            guard let searchDay = calendar.date(byAdding: .day, value: dayOffset, to: calendar.startOfDay(for: startingFrom)) else {
+                continue
+            }
+
+            // For the first day, start from current time; for other days, start from preferred hour
+            let actualStartHour = dayOffset == 0 ? calendar.component(.hour, from: startingFrom) : preferredStartHour
+            let actualStartMinute = dayOffset == 0 ? calendar.component(.minute, from: startingFrom) : 0
+
+            let startMinute = actualStartHour * 60 + actualStartMinute
+            let endMinute = preferredEndHour * 60
+
+            // Try 15-minute increments
+            for minute in stride(from: startMinute, to: endMinute, by: incrementMinutes) {
+                let hour = minute / 60
+                let min = minute % 60
+
+                guard let candidateStart = calendar.date(
+                    bySettingHour: hour,
+                    minute: min,
+                    second: 0,
+                    of: searchDay
+                ) else { continue }
+
+                let candidateEnd = candidateStart.addingTimeInterval(duration)
+
+                // Check if this slot is available
+                if isTimeSlotAvailable(startDate: candidateStart, endDate: candidateEnd, in: existingEvents) {
+                    return candidateStart
+                }
+            }
+        }
+
+        return nil
+    }
+
+    /// Get formatted time slot suggestions with duration
+    struct TimeSlotSuggestion {
+        let startDate: Date
+        let endDate: Date
+
+        var formattedTimeRange: String {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
+        }
+
+        var formattedDate: String {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            return formatter.string(from: startDate)
+        }
+
+        var isToday: Bool {
+            Calendar.current.isDateInToday(startDate)
+        }
+
+        var isTomorrow: Bool {
+            Calendar.current.isDateInTomorrow(startDate)
+        }
+
+        var displayDate: String {
+            if isToday {
+                return "Today"
+            } else if isTomorrow {
+                return "Tomorrow"
+            } else {
+                return formattedDate
+            }
+        }
+    }
+
+    /// Get formatted suggestions for alternative time slots
+    static func getFormattedSuggestions(
+        duration: TimeInterval,
+        on date: Date,
+        in existingEvents: [Event],
+        count: Int = 3
+    ) -> [TimeSlotSuggestion] {
+        let startDates = suggestAlternativeTimeSlots(
+            duration: duration,
+            on: date,
+            in: existingEvents
+        )
+
+        return startDates.prefix(count).map { startDate in
+            TimeSlotSuggestion(
+                startDate: startDate,
+                endDate: startDate.addingTimeInterval(duration)
+            )
+        }
     }
 }

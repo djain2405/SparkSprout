@@ -9,13 +9,28 @@ import SwiftUI
 
 struct ConflictWarningView: View {
     let conflicts: [ConflictDetector.Conflict]
+    let eventDuration: TimeInterval
+    let eventStartDate: Date
+    let existingEvents: [Event]
     let onKeepAnyway: () -> Void
     let onAdjustTime: () -> Void
     let onMarkFlexible: () -> Void
+    let onMarkTentative: () -> Void
+    let onApplyTimeSlot: (Date) -> Void
+    let onFindNextSlot: () -> Void
     let onCancel: () -> Void
 
     private var primaryConflict: ConflictDetector.Conflict? {
         conflicts.first
+    }
+
+    private var suggestedTimeSlots: [ConflictDetector.TimeSlotSuggestion] {
+        ConflictDetector.getFormattedSuggestions(
+            duration: eventDuration,
+            on: eventStartDate,
+            in: existingEvents,
+            count: 3
+        )
     }
 
     private var severityColor: Color {
@@ -75,6 +90,50 @@ struct ConflictWarningView: View {
             .background(Theme.Colors.cardBackground)
             .cornerRadius(Theme.CornerRadius.medium)
 
+            // Suggested time slots section
+            if !suggestedTimeSlots.isEmpty {
+                VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                    Text("Suggested Times")
+                        .font(Theme.Typography.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+
+                    ForEach(Array(suggestedTimeSlots.enumerated()), id: \.offset) { index, slot in
+                        Button(action: {
+                            onApplyTimeSlot(slot.startDate)
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(slot.formattedTimeRange)
+                                        .font(Theme.Typography.body)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.primary)
+
+                                    if !slot.isToday {
+                                        Text(slot.displayDate)
+                                            .font(Theme.Typography.caption)
+                                            .foregroundStyle(Theme.Colors.textSecondary)
+                                    }
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .font(.system(size: 20))
+                            }
+                            .padding()
+                            .background(.green.opacity(0.05))
+                            .cornerRadius(Theme.CornerRadius.medium)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
+                                    .stroke(.green.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                    }
+                }
+            }
+
             // Action buttons
             VStack(spacing: Theme.Spacing.sm) {
                 // Keep anyway button
@@ -99,6 +158,34 @@ struct ConflictWarningView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(.blue.opacity(0.1))
+                    .cornerRadius(Theme.CornerRadius.medium)
+                }
+
+                // Find next available slot button
+                Button(action: onFindNextSlot) {
+                    HStack {
+                        Image(systemName: "magnifyingglass.circle")
+                        Text("Find Next Available Slot")
+                    }
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(.green)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.green.opacity(0.1))
+                    .cornerRadius(Theme.CornerRadius.medium)
+                }
+
+                // Mark as tentative button
+                Button(action: onMarkTentative) {
+                    HStack {
+                        Image(systemName: "clock.badge.questionmark")
+                        Text("Mark as Tentative")
+                    }
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.orange.opacity(0.1))
                     .cornerRadius(Theme.CornerRadius.medium)
                 }
 
@@ -166,30 +253,34 @@ struct ConflictWarningView: View {
 
 // MARK: - Preview
 #Preview {
+    let event1 = Event(
+        title: "Team Meeting",
+        startDate: Date(),
+        endDate: Date().addingTimeInterval(3600)
+    )
+
+    let event2 = Event(
+        title: "Lunch",
+        startDate: Date().addingTimeInterval(7200),
+        endDate: Date().addingTimeInterval(9000)
+    )
+
     let conflicts = [
-        ConflictDetector.Conflict(
-            event: Event(
-                title: "Team Meeting",
-                startDate: Date(),
-                endDate: Date().addingTimeInterval(3600)
-            ),
-            severity: .hard
-        ),
-        ConflictDetector.Conflict(
-            event: Event(
-                title: "Lunch",
-                startDate: Date().addingTimeInterval(7200),
-                endDate: Date().addingTimeInterval(9000)
-            ),
-            severity: .adjacent
-        )
+        ConflictDetector.Conflict(event: event1, severity: .hard),
+        ConflictDetector.Conflict(event: event2, severity: .adjacent)
     ]
 
-    return ConflictWarningView(
+    ConflictWarningView(
         conflicts: conflicts,
+        eventDuration: 3600,
+        eventStartDate: Date(),
+        existingEvents: [event1, event2],
         onKeepAnyway: { print("Keep anyway") },
         onAdjustTime: { print("Adjust time") },
         onMarkFlexible: { print("Mark flexible") },
+        onMarkTentative: { print("Mark tentative") },
+        onApplyTimeSlot: { date in print("Apply time slot: \(date)") },
+        onFindNextSlot: { print("Find next slot") },
         onCancel: { print("Cancel") }
     )
 }

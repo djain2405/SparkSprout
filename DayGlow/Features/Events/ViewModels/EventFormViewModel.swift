@@ -18,6 +18,7 @@ final class EventFormViewModel {
     var notes: String = ""
     var eventType: String = Event.EventType.personal
     var isFlexible: Bool = false
+    var isTentative: Bool = false
 
     // MARK: - State
     var conflicts: [ConflictDetector.Conflict] = []
@@ -68,6 +69,7 @@ final class EventFormViewModel {
             self.notes = event.notes ?? ""
             self.eventType = event.eventType ?? Event.EventType.personal
             self.isFlexible = event.isFlexible
+            self.isTentative = event.isTentative
         } else {
             // Creating new event
             // Round to next hour
@@ -179,6 +181,35 @@ final class EventFormViewModel {
 
     func markAsFlexible() {
         isFlexible = true
+    }
+
+    func markAsTentative() {
+        isTentative = true
+    }
+
+    /// Apply a suggested time slot to the event
+    func applyTimeSlot(_ newStartDate: Date) {
+        let duration = endDate.timeIntervalSince(startDate)
+        startDate = newStartDate
+        endDate = newStartDate.addingTimeInterval(duration)
+    }
+
+    /// Find and apply the next available time slot for this event
+    /// Returns true if a slot was found and applied, false otherwise
+    @MainActor
+    func findAndApplyNextAvailableSlot(in events: [Event]) -> Bool {
+        let duration = endDate.timeIntervalSince(startDate)
+
+        if let nextSlot = ConflictDetector.findNextAvailableSlot(
+            duration: duration,
+            startingFrom: startDate,
+            in: events
+        ) {
+            applyTimeSlot(nextSlot)
+            return true
+        }
+
+        return false
     }
 
     // MARK: - Quick Time Presets

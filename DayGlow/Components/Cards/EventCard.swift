@@ -58,19 +58,37 @@ struct EventCard: View {
                         .foregroundStyle(Theme.Colors.textSecondary)
                     }
 
-                    // Flexible badge
-                    if event.isFlexible {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock.badge.checkmark")
-                                .font(.caption2)
-                            Text("Flexible")
-                                .font(Theme.Typography.caption2)
+                    // Badges
+                    HStack(spacing: 6) {
+                        // Flexible badge
+                        if event.isFlexible {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.badge.checkmark")
+                                    .font(.caption2)
+                                Text("Flexible")
+                                    .font(Theme.Typography.caption2)
+                            }
+                            .foregroundStyle(.blue)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(.blue.opacity(0.1))
+                            .cornerRadius(8)
                         }
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(.blue.opacity(0.1))
-                        .cornerRadius(8)
+
+                        // Tentative badge
+                        if event.isTentative {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.badge.questionmark")
+                                    .font(.caption2)
+                                Text("Tentative")
+                                    .font(Theme.Typography.caption2)
+                            }
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(.orange.opacity(0.1))
+                            .cornerRadius(8)
+                        }
                     }
                 }
 
@@ -178,6 +196,21 @@ extension Color {
             endDate: Date().addingTimeInterval(5400),
             eventType: Event.EventType.personal,
             isFlexible: true
+        ),
+        showDate: true
+    )
+    .padding()
+}
+
+#Preview("Tentative Event") {
+    EventCard(
+        event: Event(
+            title: "Coffee Meeting",
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3600),
+            location: "Starbucks",
+            eventType: Event.EventType.social,
+            isTentative: true
         ),
         showDate: true
     )

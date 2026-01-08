@@ -19,6 +19,7 @@ final class Event {
     var notes: String?
     var eventType: String?
     var isFlexible: Bool = false
+    var isTentative: Bool = false
 
     // MARK: - Relationships
     @Relationship(deleteRule: .nullify, inverse: \DayEntry.events)
@@ -65,7 +66,8 @@ final class Event {
         location: String? = nil,
         notes: String? = nil,
         eventType: String? = nil,
-        isFlexible: Bool = false
+        isFlexible: Bool = false,
+        isTentative: Bool = false
     ) {
         self.id = UUID()
         self.title = title
@@ -75,6 +77,7 @@ final class Event {
         self.notes = notes
         self.eventType = eventType
         self.isFlexible = isFlexible
+        self.isTentative = isTentative
     }
 
     // MARK: - Helper Methods

@@ -120,6 +120,18 @@ struct AddEditEventView: View {
                                 .foregroundStyle(Theme.Colors.textSecondary)
                         }
                     }
+
+                    Toggle("Tentative", isOn: $viewModel.isTentative)
+
+                    if viewModel.isTentative {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundStyle(.orange)
+                            Text("This event is not confirmed yet")
+                                .font(Theme.Typography.caption)
+                                .foregroundStyle(Theme.Colors.textSecondary)
+                        }
+                    }
                 }
 
                 // Delete button for existing events
@@ -165,6 +177,9 @@ struct AddEditEventView: View {
             .sheet(isPresented: $showingConflictWarning) {
                 ConflictWarningView(
                     conflicts: viewModel.conflicts,
+                    eventDuration: viewModel.endDate.timeIntervalSince(viewModel.startDate),
+                    eventStartDate: viewModel.startDate,
+                    existingEvents: allEvents,
                     onKeepAnyway: {
                         showingConflictWarning = false
                         saveEvent()
@@ -177,6 +192,27 @@ struct AddEditEventView: View {
                         viewModel.markAsFlexible()
                         showingConflictWarning = false
                         saveEvent()
+                    },
+                    onMarkTentative: {
+                        viewModel.markAsTentative()
+                        showingConflictWarning = false
+                        saveEvent()
+                    },
+                    onApplyTimeSlot: { newStartDate in
+                        viewModel.applyTimeSlot(newStartDate)
+                        showingConflictWarning = false
+                        // Re-check for conflicts after applying the new time slot
+                        checkForConflictsAndSave()
+                    },
+                    onFindNextSlot: {
+                        if viewModel.findAndApplyNextAvailableSlot(in: allEvents) {
+                            showingConflictWarning = false
+                            // Re-check for conflicts after finding next slot
+                            checkForConflictsAndSave()
+                        } else {
+                            // TODO: Show alert that no available slot was found
+                            print("No available slot found")
+                        }
                     },
                     onCancel: {
                         showingConflictWarning = false
@@ -209,6 +245,7 @@ struct AddEditEventView: View {
             existingEvent.notes = viewModel.notes.isEmpty ? nil : viewModel.notes
             existingEvent.eventType = viewModel.eventType
             existingEvent.isFlexible = viewModel.isFlexible
+            existingEvent.isTentative = viewModel.isTentative
         } else {
             // Create new event
             let newEvent = Event(
@@ -218,7 +255,8 @@ struct AddEditEventView: View {
                 location: viewModel.location.isEmpty ? nil : viewModel.location,
                 notes: viewModel.notes.isEmpty ? nil : viewModel.notes,
                 eventType: viewModel.eventType,
-                isFlexible: viewModel.isFlexible
+                isFlexible: viewModel.isFlexible,
+                isTentative: viewModel.isTentative
             )
 
             modelContext.insert(newEvent)

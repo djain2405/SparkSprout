@@ -15,16 +15,22 @@ struct HighlightCardView: View {
     @Binding var dayEntry: DayEntry?
 
     @Environment(\.modelContext) private var modelContext
+    @Query(filter: #Predicate<DayEntry> { $0.highlightText != nil })
+    private var allHighlights: [DayEntry]
 
     @State private var highlightText: String = ""
     @State private var selectedEmoji: String? = nil
     @State private var isEditing: Bool = false
     @State private var showEmojiPicker: Bool = false
     @State private var showingDeleteConfirmation: Bool = false
-    @State private var prompt: String = HighlightService.randomPrompt()
+    @State private var prompt: String = ""
     @State private var isSaving: Bool = false
 
     @Environment(\.dismiss) private var dismissView
+
+    private var currentStreak: Int {
+        HighlightService.calculateCurrentStreak(from: allHighlights)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
@@ -196,6 +202,9 @@ struct HighlightCardView: View {
             highlightText = ""
             selectedEmoji = nil
         }
+
+        // Set contextual prompt based on date and streak
+        prompt = HighlightService.contextualPrompt(for: date, currentStreak: currentStreak)
     }
 
     private func saveHighlight() {

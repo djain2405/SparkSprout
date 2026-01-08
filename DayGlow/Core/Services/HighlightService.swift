@@ -121,22 +121,153 @@ struct HighlightService {
 
     // MARK: - Prompts
 
-    /// Returns a random prompt to encourage highlight entry
-    static func randomPrompt() -> String {
-        let prompts = [
-            "What made you smile today?",
-            "What's your best moment?",
-            "What are you proud of?",
-            "What brought you joy?",
-            "What's one good thing that happened?",
-            "What made today special?",
-            "What are you grateful for?",
-            "What's your win for today?",
-            "What moment do you want to remember?",
-            "What surprised you today?"
-        ]
+    /// Returns a contextual prompt based on day of week, streak, and season
+    static func contextualPrompt(for date: Date = Date(), currentStreak: Int = 0) -> String {
+        // Prioritize streak-based prompts for milestones
+        if let streakPrompt = streakBasedPrompt(currentStreak) {
+            return streakPrompt
+        }
 
-        return prompts.randomElement() ?? "What's your highlight for today?"
+        // Use day of week rotation as default
+        return dayOfWeekPrompt(for: date)
+    }
+
+    /// Returns a random prompt to encourage highlight entry (legacy fallback)
+    static func randomPrompt() -> String {
+        return contextualPrompt()
+    }
+
+    // MARK: - Private Prompt Helpers
+
+    /// Returns a prompt based on the day of the week
+    private static func dayOfWeekPrompt(for date: Date) -> String {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: date)
+
+        // Get season to potentially vary the prompt
+        let season = currentSeason(for: date)
+
+        switch weekday {
+        case 1: // Sunday - Reflection
+            return seasonalVariation("What made this week special?", season: season, alternatives: [
+                "What are you taking into the new week?",
+                "What moment from this week stands out?"
+            ])
+
+        case 2: // Monday - Gratitude
+            return seasonalVariation("What are you grateful for today?", season: season, alternatives: [
+                "What's bringing you peace today?",
+                "What are you looking forward to this week?"
+            ])
+
+        case 3: // Tuesday - Learning
+            return seasonalVariation("What's one thing you learned today?", season: season, alternatives: [
+                "What challenged you in a good way?",
+                "What new perspective did you gain?"
+            ])
+
+        case 4: // Wednesday - Midweek momentum
+            return seasonalVariation("What's your win so far this week?", season: season, alternatives: [
+                "What progress are you proud of?",
+                "What's keeping you motivated?"
+            ])
+
+        case 5: // Thursday - Connection
+            return seasonalVariation("Who made a positive impact on your day?", season: season, alternatives: [
+                "What meaningful conversation did you have?",
+                "Who are you grateful to have in your life?"
+            ])
+
+        case 6: // Friday - Joy
+            return seasonalVariation("What brought you joy today?", season: season, alternatives: [
+                "What made you smile today?",
+                "What are you celebrating this week?"
+            ])
+
+        case 7: // Saturday - Adventure
+            return seasonalVariation("What surprised you today?", season: season, alternatives: [
+                "What made today unique?",
+                "What adventure did you have?"
+            ])
+
+        default:
+            return "What's your highlight for today?"
+        }
+    }
+
+    /// Returns a prompt based on current streak length (milestone-based)
+    /// Only returns prompts for significant milestones, otherwise returns nil to use day-based prompts
+    private static func streakBasedPrompt(_ streak: Int) -> String? {
+        switch streak {
+        case 3:
+            return "Three days strong! What are you proud of?" // Early milestone
+        case 7:
+            return "A whole week! 🔥 What's been your favorite moment?" // Weekly milestone
+        case 14:
+            return "Two weeks! 🔥🔥 What surprised you most recently?" // Bi-weekly milestone
+        case 30:
+            return "30 days! 🏆 What's been your biggest win this month?" // Monthly milestone
+        case 50:
+            return "50 days! You're amazing! What keeps you going?" // Extended milestone
+        case 100:
+            return "100 days! 🎉 What moment sums up your journey?" // Major milestone
+        default:
+            return nil // Use day-based prompts for non-milestones (including 0, 1, 2, and all others)
+        }
+    }
+
+    /// Determines the current season
+    private static func currentSeason(for date: Date) -> Season {
+        let calendar = Calendar.current
+        let month = calendar.component(.month, from: date)
+
+        switch month {
+        case 12, 1, 2:
+            return .winter
+        case 3, 4, 5:
+            return .spring
+        case 6, 7, 8:
+            return .summer
+        case 9, 10, 11:
+            return .fall
+        default:
+            return .spring
+        }
+    }
+
+    /// Adds seasonal variation to prompts
+    private static func seasonalVariation(_ basePrompt: String, season: Season, alternatives: [String]) -> String {
+        // 70% chance to use base prompt, 30% for seasonal alternatives
+        if Int.random(in: 1...10) <= 7 {
+            return basePrompt
+        }
+
+        return alternatives.randomElement() ?? basePrompt
+    }
+
+    enum Season {
+        case spring, summer, fall, winter
+    }
+
+    /// Get an encouraging prompt based on streak status
+    static func encouragingPrompt(currentStreak: Int, longestStreak: Int) -> String {
+        if currentStreak == 0 {
+            if longestStreak > 0 {
+                return "Ready to start a new streak? You've done \(longestStreak) days before!"
+            } else {
+                return "Start your highlight streak today!"
+            }
+        } else if currentStreak == longestStreak && longestStreak >= 7 {
+            return "You're at your best streak ever! 🌟 Keep going!"
+        } else if currentStreak >= 30 {
+            return "Incredible dedication! \(currentStreak) days strong! 🔥🔥🔥"
+        } else if currentStreak >= 14 {
+            return "You're on fire! \(currentStreak) days in a row! 🔥🔥"
+        } else if currentStreak >= 7 {
+            return "Amazing! One week streak! 🔥"
+        } else {
+            return "Great momentum! \(currentStreak) day streak! ⭐️"
+        }
     }
 
     // MARK: - Statistics

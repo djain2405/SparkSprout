@@ -29,6 +29,10 @@ final class UserPreferences {
         static let hasSeenTemplateIntro = "hasSeenTemplateIntro"
         static let hasSeenConflictTip = "hasSeenConflictTip"
         static let hasSeenStreakTip = "hasSeenStreakTip"
+        // Reminder settings
+        static let highlightReminderEnabled = "highlightReminderEnabled"
+        static let highlightReminderHour = "highlightReminderHour"
+        static let highlightReminderMinute = "highlightReminderMinute"
     }
 
     // MARK: - Properties
@@ -73,6 +77,65 @@ final class UserPreferences {
         }
     }
 
+    // MARK: - Reminder Settings
+
+    /// Whether daily highlight reminders are enabled
+    var highlightReminderEnabled: Bool {
+        get {
+            // Default to true if never set
+            guard store.object(forKey: Keys.highlightReminderEnabled) != nil else {
+                return true
+            }
+            return store.bool(forKey: Keys.highlightReminderEnabled)
+        }
+        set {
+            store.set(newValue, forKey: Keys.highlightReminderEnabled)
+            store.synchronize()
+            defaults.set(newValue, forKey: Keys.highlightReminderEnabled)
+        }
+    }
+
+    /// The hour component of the reminder time (0-23, default: 20 for 8 PM)
+    var highlightReminderHour: Int {
+        get {
+            let hour = store.longLong(forKey: Keys.highlightReminderHour)
+            return hour == 0 && store.object(forKey: Keys.highlightReminderHour) == nil ? 20 : Int(hour)
+        }
+        set {
+            store.set(Int64(newValue), forKey: Keys.highlightReminderHour)
+            store.synchronize()
+            defaults.set(newValue, forKey: Keys.highlightReminderHour)
+        }
+    }
+
+    /// The minute component of the reminder time (0-59, default: 0)
+    var highlightReminderMinute: Int {
+        get {
+            let minute = store.longLong(forKey: Keys.highlightReminderMinute)
+            return Int(minute)
+        }
+        set {
+            store.set(Int64(newValue), forKey: Keys.highlightReminderMinute)
+            store.synchronize()
+            defaults.set(newValue, forKey: Keys.highlightReminderMinute)
+        }
+    }
+
+    /// Get the reminder time as a Date object
+    var highlightReminderTime: Date {
+        get {
+            let calendar = Calendar.current
+            let components = DateComponents(hour: highlightReminderHour, minute: highlightReminderMinute)
+            return calendar.date(from: components) ?? Date()
+        }
+        set {
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.hour, .minute], from: newValue)
+            highlightReminderHour = components.hour ?? 20
+            highlightReminderMinute = components.minute ?? 0
+        }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -104,6 +167,9 @@ final class UserPreferences {
         defaults.set(store.bool(forKey: Keys.hasSeenTemplateIntro), forKey: Keys.hasSeenTemplateIntro)
         defaults.set(store.bool(forKey: Keys.hasSeenConflictTip), forKey: Keys.hasSeenConflictTip)
         defaults.set(store.bool(forKey: Keys.hasSeenStreakTip), forKey: Keys.hasSeenStreakTip)
+        defaults.set(store.bool(forKey: Keys.highlightReminderEnabled), forKey: Keys.highlightReminderEnabled)
+        defaults.set(Int(store.longLong(forKey: Keys.highlightReminderHour)), forKey: Keys.highlightReminderHour)
+        defaults.set(Int(store.longLong(forKey: Keys.highlightReminderMinute)), forKey: Keys.highlightReminderMinute)
     }
 
     /// Reset all preferences to defaults (useful for testing)
@@ -112,6 +178,9 @@ final class UserPreferences {
         store.removeObject(forKey: Keys.hasSeenTemplateIntro)
         store.removeObject(forKey: Keys.hasSeenConflictTip)
         store.removeObject(forKey: Keys.hasSeenStreakTip)
+        store.removeObject(forKey: Keys.highlightReminderEnabled)
+        store.removeObject(forKey: Keys.highlightReminderHour)
+        store.removeObject(forKey: Keys.highlightReminderMinute)
         store.synchronize()
     }
 }
