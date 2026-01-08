@@ -11,8 +11,8 @@ import SwiftData
 @Model
 final class DayEntry {
     // MARK: - Properties
-    var id: UUID
-    var date: Date // Normalized to midnight
+    var id: UUID = UUID()
+    var date: Date = Date() // Normalized to midnight
     var highlightText: String?
     var moodEmoji: String?
 

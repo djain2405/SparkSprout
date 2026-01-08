@@ -11,14 +11,14 @@ import SwiftData
 @Model
 final class Template {
     // MARK: - Properties
-    var id: UUID
-    var name: String // Internal identifier (e.g., "solo_date")
-    var displayName: String // User-facing name (e.g., "Main Character Solo Date")
-    var icon: String // SF Symbol name
-    var defaultDuration: TimeInterval // in seconds
+    var id: UUID = UUID()
+    var name: String = "" // Internal identifier (e.g., "solo_date")
+    var displayName: String = "" // User-facing name (e.g., "Main Character Solo Date")
+    var icon: String = "" // SF Symbol name
+    var defaultDuration: TimeInterval = 0 // in seconds
     var suggestedChecklist: [String]?
-    var eventType: String
-    var color: String // Hex color string
+    var eventType: String = ""
+    var color: String = "" // Hex color string
 
     // MARK: - Computed Properties
     var durationHours: Int {

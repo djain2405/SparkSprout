@@ -11,14 +11,14 @@ import SwiftData
 @Model
 final class Event {
     // MARK: - Properties
-    var id: UUID
-    var title: String
-    var startDate: Date
-    var endDate: Date
+    var id: UUID = UUID()
+    var title: String = ""
+    var startDate: Date = Date()
+    var endDate: Date = Date()
     var location: String?
     var notes: String?
     var eventType: String?
-    var isFlexible: Bool
+    var isFlexible: Bool = false
 
     // MARK: - Relationships
     @Relationship(deleteRule: .nullify, inverse: \DayEntry.events)

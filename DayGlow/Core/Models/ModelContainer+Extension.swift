@@ -17,11 +17,24 @@ extension ModelContainer {
             Template.self
         ])
 
+        // Use a specific database name for CloudKit mode
+        // If you need to reset, change "dayglow-v2" to "dayglow-v3" etc.
+        let storeURL = URL.documentsDirectory.appending(path: "dayglow-cloudkit.store")
+
         let configuration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: .none // Local-first, no cloud sync in MVP
+            url: storeURL,
+            cloudKitDatabase: .automatic // iCloud sync enabled
         )
+
+        print("🔵 iCloud CloudKit is ENABLED - data will sync to iCloud")
+
+        // Check if iCloud is properly configured
+        if FileManager.default.ubiquityIdentityToken != nil {
+            print("✅ iCloud Identity Token: AVAILABLE")
+        } else {
+            print("❌ iCloud Identity Token: NOT AVAILABLE - User may not be signed in or iCloud not enabled")
+        }
 
         do {
             let container = try ModelContainer(
@@ -29,18 +42,54 @@ extension ModelContainer {
                 configurations: [configuration]
             )
 
+            print("✅ ModelContainer created successfully with CloudKit")
+            print("📦 Configuration: \(configuration.url)")
+            print("🔐 CloudKit database mode: automatic")
+
             // Clean up any duplicate day entries from previous versions
             cleanupDuplicateDayEntries(container: container)
 
             // Seed default templates on first launch
             seedTemplatesIfNeeded(container: container)
 
-            // Seed sample data for demo purposes (first launch only)
-            seedSampleDataIfNeeded(container: container)
+            // Sample data seeding disabled - users start with a clean slate
+            // Templates are still seeded for app functionality
 
             return container
         } catch {
-            fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
+            // Detailed error logging
+            print("❌ FATAL ERROR creating ModelContainer:")
+            print("   Error: \(error)")
+            print("   LocalizedDescription: \(error.localizedDescription)")
+
+            // If using CloudKit, try falling back to local-only mode
+            print("⚠️ Attempting recovery: Switching to LOCAL-ONLY mode...")
+
+            do {
+                let fallbackConfig = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: false,
+                    cloudKitDatabase: .none // Disable CloudKit temporarily
+                )
+
+                let container = try ModelContainer(
+                    for: schema,
+                    configurations: [fallbackConfig]
+                )
+
+                print("✅ ModelContainer created in LOCAL-ONLY mode (CloudKit disabled)")
+                print("⚠️ iCloud sync is DISABLED. Data will only be stored locally.")
+
+                // Clean up any duplicate day entries
+                cleanupDuplicateDayEntries(container: container)
+
+                // Seed default templates
+                seedTemplatesIfNeeded(container: container)
+
+                return container
+            } catch {
+                fatalError("Failed to create ModelContainer even in local mode: \(error.localizedDescription)")
+            }
         }
     }()
 
@@ -112,7 +161,8 @@ extension ModelContainer {
     }
 
     /// Seeds sample data for demo purposes (events and highlights)
-    private static func seedSampleDataIfNeeded(container: ModelContainer) {
+    /// Only seeds if database is empty AND user opted in via preferences
+    private static func seedSampleDataIfNeeded(container: ModelContainer, shouldSeed: Bool) {
         let context = container.mainContext
 
         do {
@@ -123,8 +173,8 @@ extension ModelContainer {
             let existingEvents = try context.fetch(eventFetchDescriptor)
             let existingEntries = try context.fetch(dayEntryFetchDescriptor)
 
-            // Only seed if both events and day entries are empty (first launch)
-            if existingEvents.isEmpty && existingEntries.isEmpty {
+            // Only seed if database is empty AND user wants sample data
+            if existingEvents.isEmpty && existingEntries.isEmpty && shouldSeed {
                 print("📝 Seeding sample data for demo...")
 
                 let today = Date()
@@ -215,7 +265,11 @@ extension ModelContainer {
                 try context.save()
                 print("✅ Successfully seeded sample data (events and highlights)")
             } else {
-                print("✅ Sample data already exists (\(existingEvents.count) events, \(existingEntries.count) day entries found)")
+                if !existingEvents.isEmpty || !existingEntries.isEmpty {
+                    print("✅ Sample data already exists (\(existingEvents.count) events, \(existingEntries.count) day entries found)")
+                } else {
+                    print("✅ Skipping sample data (user chose to start fresh)")
+                }
             }
         } catch {
             print("⚠️ Failed to seed sample data: \(error.localizedDescription)")
