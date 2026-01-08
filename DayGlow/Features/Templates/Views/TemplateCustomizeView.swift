@@ -17,6 +17,10 @@ struct TemplateCustomizeView: View {
 
     @State private var startTime: Date
     @State private var endTime: Date
+    @State private var existingEvents: [Event] = []
+    @State private var conflicts: [ConflictDetector.Conflict] = []
+    @State private var showingConflictWarning = false
+    @State private var isSaving = false
 
     init(template: Template, date: Date) {
         self.template = template
@@ -120,10 +124,29 @@ struct TemplateCustomizeView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create Event") {
-                        createEventFromTemplate()
+                        checkConflictsAndCreate()
                     }
                     .fontWeight(.semibold)
-                    .disabled(endTime <= startTime)
+                    .disabled(endTime <= startTime || isSaving)
+                }
+            }
+            .onAppear {
+                loadExistingEvents()
+            }
+            .onChange(of: startTime) { _, _ in
+                checkForConflicts()
+            }
+            .onChange(of: endTime) { _, _ in
+                checkForConflicts()
+            }
+            .alert("Scheduling Conflict", isPresented: $showingConflictWarning) {
+                Button("Cancel", role: .cancel) { }
+                Button("Create Anyway") {
+                    createEventFromTemplate()
+                }
+            } message: {
+                if let firstConflict = conflicts.first {
+                    Text(firstConflict.description + (conflicts.count > 1 ? " (and \(conflicts.count - 1) more)" : ""))
                 }
             }
         }
@@ -137,7 +160,71 @@ struct TemplateCustomizeView: View {
 
     // MARK: - Methods
 
+    private func loadExistingEvents() {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: date)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
+
+        let descriptor = FetchDescriptor<Event>(
+            predicate: #Predicate { event in
+                event.startDate >= dayStart && event.startDate < dayEnd
+            }
+        )
+
+        do {
+            existingEvents = try modelContext.fetch(descriptor)
+            checkForConflicts()
+        } catch {
+            print("Error loading existing events: \(error)")
+        }
+    }
+
+    private func checkForConflicts() {
+        // Create temporary event to check conflicts
+        let calendar = Calendar.current
+        let startComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
+
+        guard let tempStartDate = calendar.date(
+            bySettingHour: startComponents.hour ?? 10,
+            minute: startComponents.minute ?? 0,
+            second: 0,
+            of: date
+        ),
+        let tempEndDate = calendar.date(
+            bySettingHour: endComponents.hour ?? 11,
+            minute: endComponents.minute ?? 0,
+            second: 0,
+            of: date
+        ) else {
+            return
+        }
+
+        let tempEvent = Event(
+            title: template.displayName,
+            startDate: tempStartDate,
+            endDate: tempEndDate
+        )
+
+        conflicts = ConflictDetector.detectConflicts(
+            for: tempEvent,
+            in: existingEvents
+        )
+    }
+
+    private func checkConflictsAndCreate() {
+        if !conflicts.isEmpty {
+            showingConflictWarning = true
+        } else {
+            createEventFromTemplate()
+        }
+    }
+
     private func createEventFromTemplate() {
+        // Prevent multiple saves
+        guard !isSaving else { return }
+        isSaving = true
+
         // Combine date with time
         let calendar = Calendar.current
 
@@ -156,6 +243,7 @@ struct TemplateCustomizeView: View {
             second: 0,
             of: date
         ) else {
+            isSaving = false
             return
         }
 
@@ -171,9 +259,11 @@ struct TemplateCustomizeView: View {
 
         do {
             try modelContext.save()
+            isSaving = false
             dismiss()
         } catch {
             print("Error creating event from template: \(error)")
+            isSaving = false
         }
     }
 }

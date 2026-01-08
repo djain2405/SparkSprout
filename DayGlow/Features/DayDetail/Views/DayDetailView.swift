@@ -122,6 +122,30 @@ struct DayDetailView: View {
             .sheet(isPresented: $showingTemplates) {
                 TemplatesView(date: date)
             }
+            .onChange(of: showingAddEvent) { oldValue, newValue in
+                // Reload data when add event sheet is dismissed
+                if oldValue == true && newValue == false {
+                    Task {
+                        await viewModel?.loadData()
+                    }
+                }
+            }
+            .onChange(of: showingTemplates) { oldValue, newValue in
+                // Reload data when templates sheet is dismissed
+                if oldValue == true && newValue == false {
+                    Task {
+                        await viewModel?.loadData()
+                    }
+                }
+            }
+            .onChange(of: selectedEvent) { oldValue, newValue in
+                // Reload data when edit event sheet is dismissed
+                if oldValue != nil && newValue == nil {
+                    Task {
+                        await viewModel?.loadData()
+                    }
+                }
+            }
         }
     }
 

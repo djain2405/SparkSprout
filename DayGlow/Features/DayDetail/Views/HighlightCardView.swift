@@ -22,6 +22,9 @@ struct HighlightCardView: View {
     @State private var showEmojiPicker: Bool = false
     @State private var showingDeleteConfirmation: Bool = false
     @State private var prompt: String = HighlightService.randomPrompt()
+    @State private var isSaving: Bool = false
+
+    @Environment(\.dismiss) private var dismissView
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
@@ -153,15 +156,22 @@ struct HighlightCardView: View {
 
             // Save button
             Button(action: saveHighlight) {
-                Text(dayEntry?.hasHighlight == true ? "Update Highlight" : "Save Highlight")
-                    .font(Theme.Typography.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(highlightText.isEmpty ? Color.gray : Color.blue)
-                    .cornerRadius(Theme.CornerRadius.medium)
+                HStack {
+                    if isSaving {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(.white)
+                    }
+                    Text(dayEntry?.hasHighlight == true ? "Update Highlight" : "Save Highlight")
+                }
+                .font(Theme.Typography.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(highlightText.isEmpty || isSaving ? Color.gray : Color.blue)
+                .cornerRadius(Theme.CornerRadius.medium)
             }
-            .disabled(highlightText.isEmpty)
+            .disabled(highlightText.isEmpty || isSaving)
             .buttonStyle(.plain)
 
             if isEditing {
@@ -189,6 +199,10 @@ struct HighlightCardView: View {
     }
 
     private func saveHighlight() {
+        // Prevent multiple saves
+        guard !isSaving else { return }
+        isSaving = true
+
         if let entry = dayEntry {
             // Update existing entry
             entry.highlightText = highlightText
@@ -206,8 +220,13 @@ struct HighlightCardView: View {
             try modelContext.save()
             isEditing = false
             showEmojiPicker = false
+            isSaving = false
+
+            // Dismiss the detail screen after successfully adding highlight
+            dismissView()
         } catch {
             print("Error saving highlight: \(error)")
+            isSaving = false
         }
     }
 

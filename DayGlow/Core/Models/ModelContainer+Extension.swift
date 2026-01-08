@@ -136,24 +136,50 @@ extension ModelContainer {
     private static func seedTemplatesIfNeeded(container: ModelContainer) {
         let context = container.mainContext
 
-        // Check if templates already exist
-        let fetchDescriptor = FetchDescriptor<Template>()
-
         do {
+            let fetchDescriptor = FetchDescriptor<Template>()
             let existingTemplates = try context.fetch(fetchDescriptor)
 
-            // Only seed if no templates exist
-            if existingTemplates.isEmpty {
-                print("📝 Seeding default templates...")
+            // First, clean up duplicates
+            var templatesByName: [String: [Template]] = [:]
+            for template in existingTemplates {
+                templatesByName[template.name, default: []].append(template)
+            }
 
-                for defaultTemplate in Template.defaultTemplates {
-                    context.insert(defaultTemplate)
+            var duplicatesRemoved = 0
+            for (name, templates) in templatesByName where templates.count > 1 {
+                // Keep the first one, delete the rest
+                let toDelete = templates.dropFirst()
+                for duplicate in toDelete {
+                    context.delete(duplicate)
+                    duplicatesRemoved += 1
                 }
+            }
 
+            if duplicatesRemoved > 0 {
                 try context.save()
-                print("✅ Successfully seeded \(Template.defaultTemplates.count) templates")
+                print("🧹 Cleaned up \(duplicatesRemoved) duplicate templates")
+            }
+
+            // Refresh the list after cleanup
+            let updatedTemplates = try context.fetch(fetchDescriptor)
+            let existingTemplateNames = Set(updatedTemplates.map { $0.name })
+
+            // Check which default templates are missing
+            var newTemplatesAdded = 0
+            for defaultTemplate in Template.defaultTemplates {
+                if !existingTemplateNames.contains(defaultTemplate.name) {
+                    print("📝 Adding missing template: \(defaultTemplate.displayName)")
+                    context.insert(defaultTemplate)
+                    newTemplatesAdded += 1
+                }
+            }
+
+            if newTemplatesAdded > 0 {
+                try context.save()
+                print("✅ Successfully seeded \(newTemplatesAdded) new templates")
             } else {
-                print("✅ Templates already exist (\(existingTemplates.count) found)")
+                print("✅ All default templates already exist (\(updatedTemplates.count) total)")
             }
         } catch {
             print("⚠️ Failed to seed templates: \(error.localizedDescription)")

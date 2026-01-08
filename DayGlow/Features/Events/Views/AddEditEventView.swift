@@ -86,11 +86,7 @@ struct AddEditEventView: View {
 
                 // Location and notes
                 Section("Additional Details") {
-                    HStack {
-                        Image(systemName: "location")
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                        TextField("Location (optional)", text: $viewModel.location)
-                    }
+                    LocationSearchField(location: $viewModel.location)
 
                     VStack(alignment: .leading) {
                         Text("Notes")
