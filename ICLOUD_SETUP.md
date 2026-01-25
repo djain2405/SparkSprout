@@ -1,7 +1,7 @@
-# iCloud Integration Setup Guide for DayGlow
+# iCloud Integration Setup Guide for SparkSprout
 
 ## Overview
-DayGlow now includes iCloud integration for:
+SparkSprout now includes iCloud integration for:
 - ✅ **CloudKit sync** - Events, DayEntries, and Templates sync across devices
 - ✅ **iCloud Key-Value Storage** - User preferences and onboarding status persist across installs
 - ✅ **Automatic backup** - Data survives app deletion and reinstallation
@@ -12,10 +12,10 @@ DayGlow now includes iCloud integration for:
 
 You **must** enable iCloud capabilities in Xcode for the integration to work. Follow these steps:
 
-### Step 1: Select the DayGlow Target
-1. Open `DayGlow.xcodeproj` in Xcode
-2. Click on **DayGlow** project in the navigator (blue icon)
-3. Select the **DayGlow** target (under TARGETS)
+### Step 1: Select the SparkSprout Target
+1. Open `SparkSprout.xcodeproj` in Xcode
+2. Click on **SparkSprout** project in the navigator (blue icon)
+3. Select the **SparkSprout** target (under TARGETS)
 4. Click the **Signing & Capabilities** tab at the top
 
 ### Step 2: Add iCloud Capability
@@ -28,11 +28,11 @@ In the newly added iCloud section, enable these two services:
 
 #### ✅ CloudKit
 - Check the **"CloudKit"** checkbox
-- A container will automatically be created: `iCloud.com.yourteam.DayGlow`
+- A container will automatically be created: `iCloud.com.yourteam.SparkSprout`
 - If you want a custom container name:
   - Click the "Containers" dropdown
   - Click the "+" button
-  - Enter: `iCloud.com.YourTeamID.DayGlow`
+  - Enter: `iCloud.com.YourTeamID.SparkSprout`
 
 #### ✅ Key-value storage
 - Check the **"Key-value storage"** checkbox
@@ -84,13 +84,13 @@ cloudKitDatabase: .automatic // iCloud sync enabled
 ## Testing iCloud Sync
 
 ### Test 1: Verify iCloud is Working
-1. Build and run DayGlow on a device or simulator
+1. Build and run SparkSprout on a device or simulator
 2. Make sure you're signed in with an Apple ID (Settings → [Your Name])
 3. Create an event or add a highlight
 4. Check Xcode console for any iCloud errors
 
 ### Test 2: Cross-Device Sync
-1. Install DayGlow on two devices (both signed in with same Apple ID)
+1. Install SparkSprout on two devices (both signed in with same Apple ID)
 2. Device A: Create an event
 3. Device B: Wait 5-10 seconds, pull to refresh
 4. Event should appear on Device B
@@ -111,7 +111,7 @@ cloudKitDatabase: .automatic // iCloud sync enabled
 **Check these:**
 1. ✅ Signed in with Apple ID (Settings → [Your Name])
 2. ✅ iCloud Drive is enabled (Settings → [Your Name] → iCloud → iCloud Drive)
-3. ✅ DayGlow has iCloud permission (Settings → DayGlow → iCloud)
+3. ✅ SparkSprout has iCloud permission (Settings → SparkSprout → iCloud)
 4. ✅ Internet connection is active
 5. ✅ Signing & Capabilities in Xcode has iCloud enabled
 
@@ -140,7 +140,7 @@ Provisioning profile doesn't include the iCloud container
 1. Check console logs for CloudKit errors
 2. Verify both devices are signed in with **same Apple ID**
 3. Try force-quitting and reopening the app
-4. Check Settings → [Your Name] → iCloud → Show All → DayGlow
+4. Check Settings → [Your Name] → iCloud → Show All → SparkSprout
    - Make sure it's toggled ON
 
 ---
@@ -205,7 +205,7 @@ Access CloudKit Dashboard to view/debug data:
 2. Sign in with your Apple Developer account
 3. Select your team
 4. Click "CloudKit Dashboard"
-5. Select the DayGlow container
+5. Select the SparkSprout container
 6. You can:
    - View records
    - Query data
@@ -226,7 +226,7 @@ Access CloudKit Dashboard to view/debug data:
 - **Free tier**: Generous limits for most apps
 - Public database: 10 GB storage, 2 GB transfer/day
 - Private database: 1 GB storage per user
-- DayGlow uses private database (user's iCloud quota)
+- SparkSprout uses private database (user's iCloud quota)
 
 ---
 

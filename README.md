@@ -1,6 +1,6 @@
-# DayGlow
+# SparkSprout
 
-A beautiful iOS app for intentional daily planning and gratitude tracking. DayGlow helps you schedule your day, track meaningful moments, and build positive habits through daily highlights and streaks.
+A beautiful iOS app for intentional daily planning and gratitude tracking. SparkSprout helps you schedule your day, track meaningful moments, and build positive habits through daily highlights and streaks.
 
 ## Features
 
@@ -60,9 +60,9 @@ Each template includes:
 ## Project Structure
 
 ```
-DayGlow/
-├── DayGlow/
-│   ├── DayGlowApp.swift           # App entry point
+SparkSprout/
+├── SparkSprout/
+│   ├── SparkSproutApp.swift           # App entry point
 │   ├── Core/
 │   │   ├── Models/
 │   │   │   ├── Event.swift        # Event data model
@@ -106,8 +106,8 @@ DayGlow/
 │       ├── Forms/
 │       │   └── EmojiPicker.swift
 │       └── StreakIndicator.swift
-├── DayGlowTests/
-└── DayGlowUITests/
+├── SparkSproutTests/
+└── SparkSproutUITests/
 ```
 
 ## Getting Started
@@ -121,13 +121,13 @@ DayGlow/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/DayGlow.git
-cd DayGlow
+git clone https://github.com/yourusername/SparkSprout.git
+cd SparkSprout
 ```
 
 2. Open the project in Xcode:
 ```bash
-open DayGlow.xcodeproj
+open SparkSprout.xcodeproj
 ```
 
 3. Select your target device or simulator
@@ -174,7 +174,7 @@ open DayGlow.xcodeproj
 
 ## Design Philosophy
 
-DayGlow is built around three core principles:
+SparkSprout is built around three core principles:
 
 1. **Intentionality**: Plan your days with purpose using templates and thoughtful scheduling
 2. **Gratitude**: Reflect daily on positive moments through highlights
