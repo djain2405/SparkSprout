@@ -126,6 +126,8 @@ struct EventCard: View {
             return .purple
         case Event.EventType.social:
             return .pink
+        case Event.EventType.health:
+            return .green
         case Event.EventType.soloDate:
             return Color(hex: "#FFB6C1") ?? .pink
         case Event.EventType.cleaning:

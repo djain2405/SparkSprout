@@ -103,6 +103,7 @@ struct AddEditEventView: View {
                         Text("Personal").tag(Event.EventType.personal)
                         Text("Work").tag(Event.EventType.work)
                         Text("Social").tag(Event.EventType.social)
+                        Text("Health").tag(Event.EventType.health)
                         Text("Solo Date").tag(Event.EventType.soloDate)
                         Text("Cleaning").tag(Event.EventType.cleaning)
                         Text("Admin").tag(Event.EventType.admin)

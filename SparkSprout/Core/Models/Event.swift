@@ -100,5 +100,6 @@ extension Event {
         static let cleaning = "cleaning"
         static let admin = "admin"
         static let deepWork = "deep_work"
+        static let health = "health"
     }
 }

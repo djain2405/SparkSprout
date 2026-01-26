@@ -312,4 +312,92 @@ struct ConflictDetector {
             )
         }
     }
+
+    // MARK: - Instance Methods (for convenience when you don't have an Event object)
+
+    /// Detect conflicts for a time range (without needing an Event object)
+    /// Useful for quick add and preview scenarios
+    func detectConflicts(
+        for timeRange: (start: Date, end: Date),
+        in existingEvents: [Event],
+        excludingEventId: UUID? = nil,
+        bufferMinutes: Int = 15
+    ) -> [Conflict] {
+        let buffer = TimeInterval(bufferMinutes * 60)
+
+        let conflicts = existingEvents.compactMap { existing -> Conflict? in
+            // Skip the event being edited
+            if let excludingId = excludingEventId, existing.id == excludingId {
+                return nil
+            }
+
+            // Skip flexible events (they have lower priority)
+            if existing.isFlexible {
+                return nil
+            }
+
+            let newStart = timeRange.start
+            let newEnd = timeRange.end
+            let existingStart = existing.startDate
+            let existingEnd = existing.endDate
+
+            // Check for overlap
+            if newStart < existingEnd && newEnd > existingStart {
+                // Calculate overlap percentage
+                let overlapStart = max(newStart, existingStart)
+                let overlapEnd = min(newEnd, existingEnd)
+                let overlapDuration = overlapEnd.timeIntervalSince(overlapStart)
+
+                let newEventDuration = newEnd.timeIntervalSince(newStart)
+                let existingEventDuration = existingEnd.timeIntervalSince(existingStart)
+                let shorterDuration = min(newEventDuration, existingEventDuration)
+
+                let overlapPercentage = overlapDuration / shorterDuration
+
+                // Determine severity based on overlap percentage
+                if overlapPercentage > 0.5 {
+                    return Conflict(event: existing, severity: .hard)
+                } else {
+                    return Conflict(event: existing, severity: .soft)
+                }
+            }
+
+            // Check for adjacent events (within buffer time)
+            let timeBetweenEvents = min(
+                abs(newStart.timeIntervalSince(existingEnd)),
+                abs(existingStart.timeIntervalSince(newEnd))
+            )
+
+            if timeBetweenEvents > 0 && timeBetweenEvents < buffer {
+                return Conflict(event: existing, severity: .adjacent)
+            }
+
+            return nil
+        }
+
+        // Sort by severity: hard > soft > adjacent
+        return conflicts.sorted { conflict1, conflict2 in
+            let severityOrder: [ConflictSeverity: Int] = [.hard: 3, .soft: 2, .adjacent: 1]
+            return severityOrder[conflict1.severity]! > severityOrder[conflict2.severity]!
+        }
+    }
+
+    /// Find next available slot (instance method wrapper)
+    func findNextAvailableSlot(
+        duration: TimeInterval,
+        startingFrom: Date,
+        in existingEvents: [Event],
+        searchDays: Int = 7,
+        preferredStartHour: Int = 8,
+        preferredEndHour: Int = 20
+    ) -> Date? {
+        return Self.findNextAvailableSlot(
+            duration: duration,
+            startingFrom: startingFrom,
+            in: existingEvents,
+            searchDays: searchDays,
+            preferredStartHour: preferredStartHour,
+            preferredEndHour: preferredEndHour
+        )
+    }
 }
