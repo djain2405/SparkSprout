@@ -2,7 +2,8 @@
 //  HighlightService.swift
 //  SparkSprout
 //
-//  Service for calculating highlight streaks and statistics
+//  Service for calculating highlight streaks, statistics, and generating prompts
+//  Enhanced with event-aware and weekly reflection prompts
 //
 
 import Foundation
@@ -130,6 +131,174 @@ struct HighlightService {
 
         // Use day of week rotation as default
         return dayOfWeekPrompt(for: date)
+    }
+
+    /// Returns an event-aware prompt based on the day's events
+    /// Prioritizes: event-based > streak milestone > day of week
+    static func eventAwarePrompt(for date: Date = Date(), events: [Event], currentStreak: Int = 0) -> String {
+        // First, try to generate an event-based prompt
+        if let eventPrompt = eventBasedPrompt(from: events) {
+            return eventPrompt
+        }
+
+        // Fall back to standard contextual prompt
+        return contextualPrompt(for: date, currentStreak: currentStreak)
+    }
+
+    /// Generates a prompt based on the day's events
+    private static func eventBasedPrompt(from events: [Event]) -> String? {
+        guard !events.isEmpty else { return nil }
+
+        // Find completed events (events that have ended)
+        let now = Date()
+        let completedEvents = events.filter { $0.endDate < now }
+
+        // Prioritize certain event types for prompts
+        if let socialEvent = completedEvents.first(where: { $0.eventType == Event.EventType.social }) {
+            return eventPromptForType(.social, eventTitle: socialEvent.title)
+        }
+
+        if let workEvent = completedEvents.first(where: { $0.eventType == Event.EventType.work }) {
+            return eventPromptForType(.work, eventTitle: workEvent.title)
+        }
+
+        if let soloDateEvent = completedEvents.first(where: { $0.eventType == Event.EventType.soloDate }) {
+            return eventPromptForType(.soloDate, eventTitle: soloDateEvent.title)
+        }
+
+        if let healthEvent = completedEvents.first(where: { $0.eventType == Event.EventType.health }) {
+            return eventPromptForType(.health, eventTitle: healthEvent.title)
+        }
+
+        if let deepWorkEvent = completedEvents.first(where: { $0.eventType == Event.EventType.deepWork }) {
+            return eventPromptForType(.deepWork, eventTitle: deepWorkEvent.title)
+        }
+
+        // For any other completed event, use a generic event prompt
+        if let firstCompleted = completedEvents.first {
+            return "How did \"\(firstCompleted.title)\" go today?"
+        }
+
+        // If no completed events, check for upcoming events
+        let upcomingEvents = events.filter { $0.startDate > now }
+        if !upcomingEvents.isEmpty {
+            return "What are you looking forward to today?"
+        }
+
+        return nil
+    }
+
+    private enum EventPromptType {
+        case social, work, soloDate, health, deepWork
+    }
+
+    private static func eventPromptForType(_ type: EventPromptType, eventTitle: String) -> String {
+        let prompts: [String]
+        switch type {
+        case .social:
+            prompts = [
+                "How was \"\(eventTitle)\"?",
+                "What was the best part of \"\(eventTitle)\"?",
+                "Any memorable moments from \"\(eventTitle)\"?"
+            ]
+        case .work:
+            prompts = [
+                "How did \"\(eventTitle)\" go?",
+                "What did you accomplish in \"\(eventTitle)\"?",
+                "Any breakthroughs from \"\(eventTitle)\"?"
+            ]
+        case .soloDate:
+            prompts = [
+                "How was your solo time during \"\(eventTitle)\"?",
+                "What did you enjoy most about \"\(eventTitle)\"?",
+                "How did \"\(eventTitle)\" make you feel?"
+            ]
+        case .health:
+            prompts = [
+                "How do you feel after \"\(eventTitle)\"?",
+                "What did you notice during \"\(eventTitle)\"?",
+                "Any wins from \"\(eventTitle)\"?"
+            ]
+        case .deepWork:
+            prompts = [
+                "What did you accomplish during \"\(eventTitle)\"?",
+                "Any insights from your deep work session?",
+                "How focused were you during \"\(eventTitle)\"?"
+            ]
+        }
+        return prompts.randomElement() ?? prompts[0]
+    }
+
+    // MARK: - Weekly Reflection Prompts
+
+    /// Returns a weekly reflection prompt for end-of-week summaries
+    static func weeklyReflectionPrompt(from weekHighlights: [DayEntry]) -> String {
+        let highlightCount = weekHighlights.count
+
+        if highlightCount == 0 {
+            return "What's one thing you'd like to remember from this week?"
+        }
+
+        if highlightCount >= 5 {
+            return "Amazing week! What patterns do you notice in your highlights?"
+        }
+
+        if highlightCount >= 3 {
+            return "Great momentum this week! What theme connects your highlights?"
+        }
+
+        // Analyze the week's highlights for patterns
+        let moodEmojis = weekHighlights.compactMap { $0.moodEmoji }
+        let hasPositiveMood = moodEmojis.contains { ["🤩", "😊", "🎉", "💪", "🙏"].contains($0) }
+
+        if hasPositiveMood {
+            return "You've had some great moments! What made this week special?"
+        }
+
+        return "Looking back at your week, what stands out most?"
+    }
+
+    /// Returns discovery prompts based on highlight history patterns
+    static func discoveryPrompt(from allHighlights: [DayEntry], currentStreak: Int) -> String {
+        let calendar = Calendar.current
+        let now = Date()
+
+        // Check if user tends to highlight on certain days
+        let weekdayCounts = Dictionary(grouping: allHighlights) { entry in
+            calendar.component(.weekday, from: entry.date)
+        }.mapValues { $0.count }
+
+        if let (topWeekday, count) = weekdayCounts.max(by: { $0.value < $1.value }), count >= 3 {
+            let dayName = calendar.weekdaySymbols[topWeekday - 1]
+            let todayWeekday = calendar.component(.weekday, from: now)
+
+            if todayWeekday == topWeekday {
+                return "\(dayName)s seem to bring good moments! What's today's highlight?"
+            }
+        }
+
+        // Check for common mood patterns
+        let recentHighlights = allHighlights.sorted { $0.date > $1.date }.prefix(10)
+        let recentMoods = recentHighlights.compactMap { $0.moodEmoji }
+
+        if recentMoods.filter({ $0 == "🤩" || $0 == "🎉" }).count >= 3 {
+            return "You've been having amazing moments lately! What's exciting you?"
+        }
+
+        if recentMoods.filter({ $0 == "🙏" }).count >= 3 {
+            return "Gratitude seems important to you. What are you thankful for today?"
+        }
+
+        // Default discovery prompts
+        let discoveryPrompts = [
+            "What small joy did you notice today?",
+            "What made you smile, even briefly?",
+            "What's something you did well today?",
+            "Who or what brought positivity to your day?",
+            "What moment would you want to remember?"
+        ]
+
+        return discoveryPrompts.randomElement() ?? discoveryPrompts[0]
     }
 
     /// Returns a random prompt to encourage highlight entry (legacy fallback)

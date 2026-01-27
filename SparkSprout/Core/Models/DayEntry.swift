@@ -3,6 +3,7 @@
 //  SparkSprout
 //
 //  SwiftData model for daily highlights linked to calendar days
+//  Enhanced with photo attachment support
 //
 
 import Foundation
@@ -16,6 +17,10 @@ final class DayEntry {
     var highlightText: String?
     var moodEmoji: String?
 
+    /// Photo attachment for richer highlight memories (stored as JPEG data)
+    @Attribute(.externalStorage)
+    var highlightPhotoData: Data?
+
     // MARK: - Relationships
     @Relationship(deleteRule: .nullify)
     var events: [Event]?
@@ -24,6 +29,10 @@ final class DayEntry {
     var hasHighlight: Bool {
         guard let text = highlightText else { return false }
         return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var hasPhoto: Bool {
+        highlightPhotoData != nil && !(highlightPhotoData?.isEmpty ?? true)
     }
 
     var normalizedDate: Date {
@@ -55,14 +64,20 @@ final class DayEntry {
     }
 
     // MARK: - Helper Methods
-    func addHighlight(text: String, emoji: String? = nil) {
+    func addHighlight(text: String, emoji: String? = nil, photoData: Data? = nil) {
         self.highlightText = text
         self.moodEmoji = emoji
+        self.highlightPhotoData = photoData
+    }
+
+    func setPhoto(_ photoData: Data?) {
+        self.highlightPhotoData = photoData
     }
 
     func clearHighlight() {
         self.highlightText = nil
         self.moodEmoji = nil
+        self.highlightPhotoData = nil
     }
 
     func addEvent(_ event: Event) {

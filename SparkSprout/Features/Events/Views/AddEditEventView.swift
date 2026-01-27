@@ -11,6 +11,7 @@ import SwiftData
 struct AddEditEventView: View {
     let event: Event? // nil for new event
     let date: Date
+    var onSave: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -21,10 +22,33 @@ struct AddEditEventView: View {
     @State private var showingConflictWarning = false
     @State private var showingDeleteConfirmation = false
 
-    init(event: Event? = nil, date: Date) {
+    init(event: Event? = nil, date: Date, onSave: (() -> Void)? = nil) {
         self.event = event
         self.date = date
+        self.onSave = onSave
         _viewModel = State(initialValue: EventFormViewModel(event: event, defaultStartDate: date))
+    }
+
+    /// Initializer for creating a new event with pre-filled values (e.g., from Quick Add)
+    init(
+        date: Date,
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        location: String? = nil,
+        eventType: String? = nil,
+        onSave: (() -> Void)? = nil
+    ) {
+        self.event = nil
+        self.date = date
+        self.onSave = onSave
+        _viewModel = State(initialValue: EventFormViewModel(
+            title: title,
+            startDate: startDate,
+            endDate: endDate,
+            location: location,
+            eventType: eventType
+        ))
     }
 
     var body: some View {
@@ -265,6 +289,7 @@ struct AddEditEventView: View {
 
         do {
             try modelContext.save()
+            onSave?()
             dismiss()
         } catch {
             print("Error saving event: \(error)")

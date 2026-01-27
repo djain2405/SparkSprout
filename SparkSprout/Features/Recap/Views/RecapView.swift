@@ -302,44 +302,64 @@ struct HighlightListCard: View {
     let entry: DayEntry
 
     var body: some View {
-        HStack(alignment: .top, spacing: Theme.Spacing.md) {
-            // Emoji with gradient background
-            ZStack {
-                Circle()
-                    .fill(Theme.Gradients.sunsetOrange.opacity(0.2))
-                    .frame(width: 60, height: 60)
-
-                if let emoji = entry.moodEmoji {
-                    Text(emoji)
-                        .font(.system(size: 36))
-                } else {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.yellow)
-                }
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            // Photo thumbnail (if available)
+            if let photoData = entry.highlightPhotoData,
+               let uiImage = UIImage(data: photoData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 120)
+                    .clipped()
+                    .cornerRadius(Theme.CornerRadius.small)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.highlightText ?? "")
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+            HStack(alignment: .top, spacing: Theme.Spacing.md) {
+                // Emoji with gradient background
+                ZStack {
+                    Circle()
+                        .fill(Theme.Gradients.sunsetOrange.opacity(0.2))
+                        .frame(width: 60, height: 60)
 
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.caption)
-                    Text(entry.dateFormatted)
-                        .font(Theme.Typography.caption)
-
-                    if entry.isToday {
-                        Text("• Today")
-                            .font(Theme.Typography.caption)
-                            .foregroundStyle(.blue)
+                    if let emoji = entry.moodEmoji {
+                        Text(emoji)
+                            .font(.system(size: 36))
+                    } else {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(.yellow)
                     }
                 }
-                .foregroundStyle(Theme.Colors.textSecondary)
-            }
 
-            Spacer()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(entry.highlightText ?? "")
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.caption)
+                        Text(entry.dateFormatted)
+                            .font(Theme.Typography.caption)
+
+                        if entry.isToday {
+                            Text("• Today")
+                                .font(Theme.Typography.caption)
+                                .foregroundStyle(.blue)
+                        }
+
+                        if entry.hasPhoto {
+                            Text("•")
+                            Image(systemName: "photo.fill")
+                                .font(.caption)
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                }
+
+                Spacer()
+            }
         }
         .padding()
         .background(

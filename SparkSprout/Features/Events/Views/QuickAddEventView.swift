@@ -75,8 +75,16 @@ struct QuickAddEventView: View {
             .sheet(isPresented: $showingFullEditor) {
                 if let parsed = parsedEvent {
                     AddEditEventView(
-                        event: createEventFromParsed(parsed),
-                        date: parsed.startDate
+                        date: parsed.startDate,
+                        title: parsed.title,
+                        startDate: parsed.startDate,
+                        endDate: parsed.endDate,
+                        location: parsed.location,
+                        eventType: parsed.eventType,
+                        onSave: {
+                            // Dismiss QuickAddEventView when event is saved from full editor
+                            dismiss()
+                        }
                     )
                 }
             }
@@ -517,12 +525,6 @@ struct QuickAddEventView: View {
             Theme.Haptics.error()
             isSaving = false
         }
-    }
-
-    private func createEventFromParsed(_ parsed: ParsedEvent) -> Event? {
-        // Return nil to indicate this is a new event (not editing)
-        // The AddEditEventView will use the date from parsed.startDate
-        return nil
     }
 
     private func findNextAvailableSlot(for parsed: ParsedEvent) -> Date? {

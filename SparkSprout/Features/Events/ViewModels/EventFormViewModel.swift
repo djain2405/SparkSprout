@@ -81,6 +81,26 @@ final class EventFormViewModel {
         }
     }
 
+    /// Initializer for creating a new event with pre-filled values (e.g., from Quick Add)
+    init(
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        location: String? = nil,
+        eventType: String? = nil,
+        eventRepository: EventRepository? = nil
+    ) {
+        self.eventRepository = eventRepository
+        self.title = title
+        self.startDate = startDate
+        self.endDate = endDate
+        self.location = location ?? ""
+        self.notes = ""
+        self.eventType = eventType ?? Event.EventType.personal
+        self.isFlexible = false
+        self.isTentative = false
+    }
+
     // MARK: - Validation Methods
 
     /// Detect conflicts using provided events array (backward compatible)

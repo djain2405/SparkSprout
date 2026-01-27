@@ -62,8 +62,12 @@ struct DayDetailView: View {
                     }
                     .padding(.top, Theme.Spacing.md)
 
-                    // Highlight card
-                    HighlightCardView(date: date, dayEntry: dayEntryBinding)
+                    // Highlight card (with event-aware prompts)
+                    HighlightCardView(
+                        date: date,
+                        events: viewModel?.events ?? [],
+                        dayEntry: dayEntryBinding
+                    )
 
                     Divider()
                         .padding(.vertical, Theme.Spacing.sm)
