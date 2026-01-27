@@ -62,6 +62,22 @@ final class DependencyContainer {
             eventRepository: eventRepository
         )
     }
+
+    /// Create a SearchViewModel with injected dependencies
+    func makeSearchViewModel() -> SearchViewModel {
+        SearchViewModel(
+            eventRepository: eventRepository,
+            dayEntryRepository: dayEntryRepository
+        )
+    }
+
+    /// Create a WeekCalendarViewModel with injected dependencies
+    func makeWeekCalendarViewModel() -> WeekCalendarViewModel {
+        WeekCalendarViewModel(
+            eventRepository: eventRepository,
+            dayEntryRepository: dayEntryRepository
+        )
+    }
 }
 
 // MARK: - Environment Key

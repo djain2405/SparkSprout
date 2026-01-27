@@ -2,7 +2,7 @@
 //  HomeCalendarView.swift
 //  SparkSprout
 //
-//  Main calendar view with month grid and navigation
+//  Main calendar view with month/week toggle and navigation
 //
 
 import SwiftUI
@@ -18,22 +18,28 @@ struct HomeCalendarView: View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 VStack(spacing: 0) {
-                    // Calendar header with navigation
+                    // Calendar header with navigation and view mode toggle
                     CalendarHeaderView(
-                        currentMonth: viewModel.currentMonthFormatted,
+                        currentMonth: viewModel.headerTitle,
+                        viewMode: viewModel.viewMode,
                         onPrevious: {
                             withAnimation(Theme.Animation.quick) {
-                                viewModel.moveToPreviousMonth()
+                                viewModel.moveToPrevious()
                             }
                         },
                         onNext: {
                             withAnimation(Theme.Animation.quick) {
-                                viewModel.moveToNextMonth()
+                                viewModel.moveToNext()
                             }
                         },
                         onToday: {
                             withAnimation(Theme.Animation.quick) {
                                 viewModel.selectToday()
+                            }
+                        },
+                        onViewModeChanged: { mode in
+                            withAnimation(Theme.Animation.standard) {
+                                viewModel.setViewMode(mode)
                             }
                         }
                     )
@@ -41,22 +47,43 @@ struct HomeCalendarView: View {
                     Divider()
                         .padding(.vertical, Theme.Spacing.sm)
 
-                    // Month grid
-                    ScrollView {
-                        MonthGridView(
-                            paddedDays: viewModel.paddedDaysForGrid(),
-                            selectedDate: viewModel.selectedDate,
-                            month: viewModel.currentMonth,
-                            onDateSelected: { date in
-                                withAnimation(Theme.Animation.quick) {
-                                    viewModel.selectDate(date)
-                                }
-                                showingDayDetail = true
-                            },
-                            refreshTrigger: gridRefreshTrigger
-                        )
-                        .padding(.bottom, 100) // Extra padding for FAB
+                    // Calendar content based on view mode
+                    Group {
+                        switch viewModel.viewMode {
+                        case .month:
+                            // Month grid view
+                            ScrollView {
+                                MonthGridView(
+                                    paddedDays: viewModel.paddedDaysForGrid(),
+                                    selectedDate: viewModel.selectedDate,
+                                    month: viewModel.currentMonth,
+                                    onDateSelected: { date in
+                                        withAnimation(Theme.Animation.quick) {
+                                            viewModel.selectDate(date)
+                                        }
+                                        showingDayDetail = true
+                                    },
+                                    refreshTrigger: gridRefreshTrigger
+                                )
+                                .padding(.bottom, 100) // Extra padding for FAB
+                            }
+
+                        case .week:
+                            // Week timeline view
+                            WeekCalendarView(
+                                weekDays: viewModel.daysInCurrentWeek(),
+                                selectedDate: viewModel.selectedDate,
+                                onDateSelected: { date in
+                                    withAnimation(Theme.Animation.quick) {
+                                        viewModel.selectDate(date)
+                                    }
+                                    showingDayDetail = true
+                                },
+                                refreshTrigger: gridRefreshTrigger
+                            )
+                        }
                     }
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
 
                     Spacer()
                 }
@@ -92,8 +119,6 @@ struct HomeCalendarView: View {
         }
     }
 }
-
-// MARK: - Day Detail View (moved to separate file in next iteration)
 
 // MARK: - Preview
 #Preview {
