@@ -3,6 +3,7 @@
 //  SparkSprout
 //
 //  Individual day cell in the calendar grid
+//  Features: Mood gradient ring, event count badge, sparkle effect, today pulse
 //
 
 import SwiftUI
@@ -16,107 +17,118 @@ struct DayCell: View {
     let eventCount: Int
 
     @State private var isPressed = false
-    @State private var starScale: CGFloat = 1.0
+    @State private var todayPulseScale: CGFloat = 1.0
+    @State private var sparklePhase: CGFloat = 0
+
+    private let cellSize: CGFloat = 44
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             ZStack {
-                // Event density gradient background
-                if eventCount > 0 {
+                // Today pulse animation ring
+                if isToday {
                     Circle()
-                        .fill(Theme.Gradients.eventDensity(intensity: eventIntensity))
-                        .frame(width: 40, height: 40)
+                        .stroke(Color.blue.opacity(0.3), lineWidth: 2)
+                        .frame(width: cellSize + 8, height: cellSize + 8)
+                        .scaleEffect(todayPulseScale)
+                        .opacity(2 - todayPulseScale)
                 }
 
-                // Day number with improved background
-                Text("\(Calendar.current.component(.day, from: date))")
-                    .font(Theme.Typography.body)
-                    .fontWeight(isToday || isSelected ? .bold : .regular)
-                    .foregroundStyle(textColor)
-                    .frame(width: 40, height: 40)
-                    .background(backgroundColor)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .strokeBorder(borderColor, lineWidth: borderWidth)
-                    )
-                    .overlay(alignment: .topTrailing) {
-                        // Highlight star badge with pulse animation
-                        if hasHighlight {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(starColor)
-                                .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
-                                .scaleEffect(starScale)
-                                .offset(x: 3, y: -3)
-                                .onAppear {
-                                    withAnimation(Theme.Animation.pulse) {
-                                        starScale = 1.2
-                                    }
-                                }
-                        }
-                    }
-                    .overlay(alignment: .bottomTrailing) {
-                        // Event count badge
-                        if eventCount > 0 {
-                            Text("\(eventCount)")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                                .frame(width: 16, height: 16)
-                                .background(Theme.Colors.primary)
-                                .clipShape(Circle())
-                                .offset(x: 4, y: 4)
-                        }
-                    }
-            }
-            .scaleEffect(isPressed ? 0.9 : 1.0)
-
-            // Event indicator
-            if eventCount > 0 {
-                HStack(spacing: 3) {
-                    ForEach(0..<min(eventCount, 3), id: \.self) { _ in
-                        Circle()
-                            .fill(eventDotColor)
-                            .frame(width: 6, height: 6)
-                    }
-                    if eventCount > 3 {
-                        Text("+")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(eventDotColor)
-                    }
+                // Mood gradient ring for highlight days
+                if hasHighlight && !isSelected {
+                    Circle()
+                        .stroke(
+                            Theme.Gradients.moodGradient(for: moodEmoji),
+                            lineWidth: 3
+                        )
+                        .frame(width: cellSize + 4, height: cellSize + 4)
+                        .shadow(color: moodGlowColor.opacity(0.5), radius: 4)
                 }
-                .frame(height: 10)
-            } else {
-                Spacer()
-                    .frame(height: 10)
-            }
 
-            // Mood emoji - larger and more prominent
+                // Main day circle with background
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .fill(backgroundColor)
+                        .frame(width: cellSize, height: cellSize)
+
+                    // Day number
+                    Text("\(Calendar.current.component(.day, from: date))")
+                        .font(.system(size: 16, weight: isToday || isSelected ? .bold : .medium))
+                        .foregroundStyle(textColor)
+                }
+
+                // Sparkle effect for highlight days
+                if hasHighlight {
+                    SparkleOverlay(phase: sparklePhase)
+                        .frame(width: cellSize + 16, height: cellSize + 16)
+                }
+
+                // Event count badge
+                if eventCount > 0 {
+                    Text("\(eventCount)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 16, height: 16)
+                        .background(
+                            Circle()
+                                .fill(eventBadgeColor)
+                                .shadow(color: eventBadgeColor.opacity(0.5), radius: 2)
+                        )
+                        .offset(x: cellSize / 2 - 4, y: -cellSize / 2 + 4)
+                }
+            }
+            .frame(width: cellSize + 16, height: cellSize + 16)
+            .scaleEffect(isPressed ? 0.92 : 1.0)
+
+            // Mood emoji display
             if let emoji = moodEmoji {
                 Text(emoji)
-                    .font(.system(size: 16))
-                    .frame(height: 18)
+                    .font(.system(size: 14))
+                    .frame(height: 16)
             } else {
                 Spacer()
-                    .frame(height: 18)
+                    .frame(height: 16)
             }
         }
-        .frame(height: 70)
+        .frame(height: 80)
         .frame(maxWidth: .infinity)
-        .contentShape(Rectangle()) // Make entire area tappable
+        .contentShape(Rectangle())
+        .onAppear {
+            startAnimations()
+        }
+    }
+
+    // MARK: - Animations
+
+    private func startAnimations() {
+        // Today pulse animation
+        if isToday {
+            withAnimation(
+                .easeInOut(duration: 2.0)
+                .repeatForever(autoreverses: false)
+            ) {
+                todayPulseScale = 1.5
+            }
+        }
+
+        // Sparkle animation for highlights
+        if hasHighlight {
+            withAnimation(
+                .linear(duration: 3.0)
+                .repeatForever(autoreverses: false)
+            ) {
+                sparklePhase = 1.0
+            }
+        }
     }
 
     // MARK: - Computed Properties
 
-    private var eventIntensity: Double {
-        // Map event count to intensity (0.0 to 1.0)
-        min(Double(eventCount) / 5.0, 1.0)
-    }
     private var textColor: Color {
         if isSelected {
             return .white
         } else if isToday {
-            // Use white text on blue background for maximum visibility
             return .white
         } else {
             return Theme.Colors.textPrimary
@@ -127,53 +139,173 @@ struct DayCell: View {
         if isSelected {
             return Theme.Colors.accent
         } else if isToday {
-            // Solid blue background for today to ensure visibility
             return .blue
+        } else if hasHighlight {
+            return Color.clear
         } else {
             return Color.clear
         }
     }
 
-    private var borderColor: Color {
-        // No border needed when using solid backgrounds
-        return .clear
-    }
-
-    private var borderWidth: CGFloat {
-        return 0
-    }
-
-    private var starColor: Color {
-        // Make star visible on different backgrounds
-        if isSelected || isToday {
-            // White star on blue/accent background
-            return .white
-        } else {
-            // Yellow star on clear/default background
+    private var moodGlowColor: Color {
+        switch moodEmoji {
+        case "😊", "🙂", "😌":
             return .yellow
+        case "🤩", "🥳", "😍":
+            return .pink
+        case "😴", "😪", "🥱":
+            return .purple
+        case "😤", "😠", "😡":
+            return .red
+        case "😢", "😭", "🥺":
+            return .blue
+        case "🧘", "☮️", "🙏":
+            return .green
+        default:
+            return .orange
         }
     }
 
-    private var eventDotColor: Color {
-        // Adjust dot color for better visibility on blue backgrounds
+    private var eventBadgeColor: Color {
         if isSelected || isToday {
-            return .white.opacity(0.8)
+            return Theme.Colors.accent
         } else {
-            return Theme.Colors.eventDot
+            return Theme.Colors.primary
         }
     }
 }
 
-// MARK: - Preview
+// MARK: - Sparkle Overlay
+
+/// Animated sparkle particles for highlight days
+struct SparkleOverlay: View {
+    let phase: CGFloat
+
+    private let sparkleCount = 6
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<sparkleCount, id: \.self) { index in
+                SparkleParticle(
+                    index: index,
+                    total: sparkleCount,
+                    phase: phase
+                )
+            }
+        }
+    }
+}
+
+struct SparkleParticle: View {
+    let index: Int
+    let total: Int
+    let phase: CGFloat
+
+    private var angle: Double {
+        (Double(index) / Double(total)) * 360 + (phase * 360)
+    }
+
+    private var radius: CGFloat {
+        24 + sin(phase * .pi * 2 + Double(index)) * 4
+    }
+
+    private var opacity: Double {
+        let baseOpacity = 0.6
+        let variation = sin(phase * .pi * 4 + Double(index) * 0.5) * 0.4
+        return max(0, baseOpacity + variation)
+    }
+
+    private var scale: CGFloat {
+        let baseScale: CGFloat = 0.8
+        let variation = CGFloat(sin(phase * .pi * 3 + Double(index))) * 0.4
+        return baseScale + variation
+    }
+
+    var body: some View {
+        Image(systemName: "sparkle")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [.yellow, .orange],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .opacity(opacity)
+            .scaleEffect(scale)
+            .offset(
+                x: cos(angle * .pi / 180) * radius,
+                y: sin(angle * .pi / 180) * radius
+            )
+    }
+}
+
+// MARK: - Previews
+
 #Preview("Regular Day") {
+    HStack {
+        DayCell(
+            date: Date(),
+            isSelected: false,
+            isToday: false,
+            hasHighlight: false,
+            moodEmoji: nil,
+            eventCount: 0
+        )
+
+        DayCell(
+            date: Date(),
+            isSelected: false,
+            isToday: false,
+            hasHighlight: false,
+            moodEmoji: nil,
+            eventCount: 3
+        )
+    }
+    .padding()
+}
+
+#Preview("Today with Pulse") {
     DayCell(
         date: Date(),
         isSelected: false,
-        isToday: false,
+        isToday: true,
         hasHighlight: false,
         moodEmoji: nil,
-        eventCount: 0
+        eventCount: 2
     )
+    .padding()
+}
+
+#Preview("Highlight with Mood Ring") {
+    HStack {
+        DayCell(
+            date: Date(),
+            isSelected: false,
+            isToday: false,
+            hasHighlight: true,
+            moodEmoji: "🤩",
+            eventCount: 1
+        )
+
+        DayCell(
+            date: Date(),
+            isSelected: false,
+            isToday: false,
+            hasHighlight: true,
+            moodEmoji: "😊",
+            eventCount: 0
+        )
+
+        DayCell(
+            date: Date(),
+            isSelected: false,
+            isToday: false,
+            hasHighlight: true,
+            moodEmoji: "😢",
+            eventCount: 2
+        )
+    }
     .padding()
 }
 
@@ -182,33 +314,34 @@ struct DayCell: View {
         date: Date(),
         isSelected: true,
         isToday: false,
-        hasHighlight: false,
-        moodEmoji: nil,
-        eventCount: 2
+        hasHighlight: true,
+        moodEmoji: "😊",
+        eventCount: 4
     )
     .padding()
 }
 
-#Preview("Today") {
+#Preview("Today with Highlight") {
     DayCell(
         date: Date(),
         isSelected: false,
         isToday: true,
         hasHighlight: true,
-        moodEmoji: "😊",
+        moodEmoji: "🥳",
         eventCount: 3
     )
     .padding()
 }
 
-#Preview("With Highlight & Events") {
-    DayCell(
-        date: Date(),
-        isSelected: false,
-        isToday: false,
-        hasHighlight: true,
-        moodEmoji: "🤩",
-        eventCount: 2
-    )
+#Preview("Calendar Week Row") {
+    HStack(spacing: 0) {
+        DayCell(date: Date(), isSelected: false, isToday: false, hasHighlight: false, moodEmoji: nil, eventCount: 0)
+        DayCell(date: Date(), isSelected: false, isToday: false, hasHighlight: true, moodEmoji: "😊", eventCount: 1)
+        DayCell(date: Date(), isSelected: false, isToday: true, hasHighlight: false, moodEmoji: nil, eventCount: 2)
+        DayCell(date: Date(), isSelected: true, isToday: false, hasHighlight: true, moodEmoji: "🤩", eventCount: 3)
+        DayCell(date: Date(), isSelected: false, isToday: false, hasHighlight: false, moodEmoji: nil, eventCount: 0)
+        DayCell(date: Date(), isSelected: false, isToday: false, hasHighlight: true, moodEmoji: "😴", eventCount: 0)
+        DayCell(date: Date(), isSelected: false, isToday: false, hasHighlight: false, moodEmoji: nil, eventCount: 5)
+    }
     .padding()
 }

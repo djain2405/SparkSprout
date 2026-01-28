@@ -101,6 +101,71 @@ struct Theme {
             startPoint: .leading,
             endPoint: .trailing
         )
+
+        /// Mood-based gradient for highlight rings
+        /// Maps mood emoji to appropriate color gradients
+        static func moodGradient(for emoji: String?) -> AngularGradient {
+            let colors: [Color]
+
+            switch emoji {
+            case "😊", "🙂", "😌":
+                // Happy/content - warm yellows and oranges
+                colors = [
+                    Color(red: 1.0, green: 0.85, blue: 0.3),
+                    Color(red: 1.0, green: 0.65, blue: 0.2),
+                    Color(red: 1.0, green: 0.85, blue: 0.3)
+                ]
+            case "🤩", "🥳", "😍":
+                // Excited/in love - vibrant pinks and purples
+                colors = [
+                    Color(red: 1.0, green: 0.4, blue: 0.6),
+                    Color(red: 0.8, green: 0.3, blue: 0.9),
+                    Color(red: 1.0, green: 0.4, blue: 0.6)
+                ]
+            case "😴", "😪", "🥱":
+                // Tired - soft blues and purples
+                colors = [
+                    Color(red: 0.5, green: 0.5, blue: 0.8),
+                    Color(red: 0.6, green: 0.4, blue: 0.7),
+                    Color(red: 0.5, green: 0.5, blue: 0.8)
+                ]
+            case "😤", "😠", "😡":
+                // Angry - reds and oranges
+                colors = [
+                    Color(red: 1.0, green: 0.3, blue: 0.2),
+                    Color(red: 0.9, green: 0.4, blue: 0.1),
+                    Color(red: 1.0, green: 0.3, blue: 0.2)
+                ]
+            case "😢", "😭", "🥺":
+                // Sad - blues and teals
+                colors = [
+                    Color(red: 0.3, green: 0.5, blue: 0.8),
+                    Color(red: 0.2, green: 0.6, blue: 0.7),
+                    Color(red: 0.3, green: 0.5, blue: 0.8)
+                ]
+            case "🧘", "☮️", "🙏":
+                // Peaceful - greens and teals
+                colors = [
+                    Color(red: 0.4, green: 0.8, blue: 0.6),
+                    Color(red: 0.3, green: 0.7, blue: 0.7),
+                    Color(red: 0.4, green: 0.8, blue: 0.6)
+                ]
+            default:
+                // Default highlight - golden gradient
+                colors = [
+                    Color(red: 1.0, green: 0.84, blue: 0.0),
+                    Color(red: 1.0, green: 0.6, blue: 0.2),
+                    Color(red: 1.0, green: 0.84, blue: 0.0)
+                ]
+            }
+
+            return AngularGradient(
+                colors: colors,
+                center: .center,
+                startAngle: .degrees(0),
+                endAngle: .degrees(360)
+            )
+        }
     }
 
     // MARK: - Typography
