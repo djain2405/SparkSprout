@@ -20,6 +20,9 @@ final class EventFormViewModel {
     var isFlexible: Bool = false
     var isTentative: Bool = false
 
+    // MARK: - Attendees
+    var selectedContacts: [SelectedContact] = []
+
     // MARK: - State
     var conflicts: [ConflictDetector.Conflict] = []
     var showConflictWarning: Bool = false
@@ -70,6 +73,18 @@ final class EventFormViewModel {
             self.eventType = event.eventType ?? Event.EventType.personal
             self.isFlexible = event.isFlexible
             self.isTentative = event.isTentative
+
+            // Load existing attendees
+            if let attendees = event.attendees {
+                self.selectedContacts = attendees.map { attendee in
+                    SelectedContact(
+                        identifier: attendee.contactIdentifier ?? "",
+                        name: attendee.name,
+                        email: attendee.email,
+                        phoneNumber: attendee.phoneNumber
+                    )
+                }
+            }
         } else {
             // Creating new event
             // Round to next hour

@@ -159,6 +159,31 @@ struct AddEditEventView: View {
                     }
                 }
 
+                // Attendees section
+                Section("Attendees") {
+                    AttendeeListView(selectedContacts: $viewModel.selectedContacts)
+                }
+
+                // Share button for existing events with attendees
+                if let existingEvent = event, existingEvent.hasAttendees {
+                    Section {
+                        if let icsURL = ICSGenerator.generateICSFile(for: existingEvent) {
+                            ShareLink(
+                                item: icsURL,
+                                subject: Text(existingEvent.title),
+                                message: Text(ICSGenerator.generateShareMessage(for: existingEvent))
+                            ) {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Share Event with Attendees")
+                                }
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                }
+
                 // Delete button for existing events
                 if event != nil {
                     Section {
@@ -271,6 +296,21 @@ struct AddEditEventView: View {
             existingEvent.eventType = viewModel.eventType
             existingEvent.isFlexible = viewModel.isFlexible
             existingEvent.isTentative = viewModel.isTentative
+
+            // Update attendees - remove old ones and add new ones
+            if let oldAttendees = existingEvent.attendees {
+                for attendee in oldAttendees {
+                    modelContext.delete(attendee)
+                }
+            }
+            existingEvent.attendees = viewModel.selectedContacts.map { contact in
+                Attendee(
+                    name: contact.name,
+                    email: contact.email,
+                    phoneNumber: contact.phoneNumber,
+                    contactIdentifier: contact.identifier
+                )
+            }
         } else {
             // Create new event
             let newEvent = Event(
@@ -283,6 +323,16 @@ struct AddEditEventView: View {
                 isFlexible: viewModel.isFlexible,
                 isTentative: viewModel.isTentative
             )
+
+            // Add attendees to new event
+            newEvent.attendees = viewModel.selectedContacts.map { contact in
+                Attendee(
+                    name: contact.name,
+                    email: contact.email,
+                    phoneNumber: contact.phoneNumber,
+                    contactIdentifier: contact.identifier
+                )
+            }
 
             modelContext.insert(newEvent)
         }

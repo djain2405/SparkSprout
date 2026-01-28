@@ -6,5 +6,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSContactsUsageDescription</key>
+	<string>SparkSprout needs access to your contacts to add attendees to events and share calendar invitations.</string>
 </dict>
 </plist>

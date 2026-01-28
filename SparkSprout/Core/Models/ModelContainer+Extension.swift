@@ -14,12 +14,14 @@ extension ModelContainer {
         let schema = Schema([
             Event.self,
             DayEntry.self,
-            Template.self
+            Template.self,
+            Attendee.self
         ])
 
         // Use a specific database name for CloudKit mode
-        // If you need to reset, change "sparksprout-v2" to "sparksprout-v3" etc.
-        let storeURL = URL.documentsDirectory.appending(path: "sparksprout-cloudkit.store")
+        // If you need to reset after schema changes, increment the version number
+        // v2: Added Attendee model for contact selection and event sharing
+        let storeURL = URL.documentsDirectory.appending(path: "sparksprout-cloudkit-v2.store")
 
         let configuration = ModelConfiguration(
             schema: schema,
@@ -311,7 +313,8 @@ extension ModelContainer {
         let schema = Schema([
             Event.self,
             DayEntry.self,
-            Template.self
+            Template.self,
+            Attendee.self
         ])
 
         let configuration = ModelConfiguration(

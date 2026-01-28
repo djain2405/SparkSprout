@@ -25,6 +25,18 @@ final class Event {
     @Relationship(deleteRule: .nullify, inverse: \DayEntry.events)
     var dayEntry: DayEntry?
 
+    @Relationship(deleteRule: .cascade)
+    var attendees: [Attendee]? = []
+
+    // MARK: - Attendee Helpers
+    var attendeeCount: Int {
+        attendees?.count ?? 0
+    }
+
+    var hasAttendees: Bool {
+        attendeeCount > 0
+    }
+
     // MARK: - Computed Properties
     var duration: TimeInterval {
         endDate.timeIntervalSince(startDate)
