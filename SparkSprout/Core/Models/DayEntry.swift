@@ -21,6 +21,12 @@ final class DayEntry {
     @Attribute(.externalStorage)
     var highlightPhotoData: Data?
 
+    /// Font style for highlight text (stored as raw value string)
+    var highlightFontStyle: String?
+
+    /// Card style for highlight display (stored as raw value string)
+    var highlightCardStyle: String?
+
     // MARK: - Relationships
     @Relationship(deleteRule: .nullify)
     var events: [Event]?

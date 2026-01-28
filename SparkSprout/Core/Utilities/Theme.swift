@@ -179,6 +179,123 @@ struct Theme {
         static let callout = Font.system(size: 15, weight: .regular)
         static let caption = Font.system(size: 14, weight: .regular)
         static let caption2 = Font.system(size: 12, weight: .regular)
+
+        // Handwriting-style fonts for highlights
+        static let handwriting = Font.custom("Bradley Hand", size: 18)
+        static let handwritingLarge = Font.custom("Bradley Hand", size: 22)
+        static let journal = Font.custom("Noteworthy", size: 18)
+        static let journalLight = Font.custom("Noteworthy-Light", size: 18)
+        static let elegant = Font.custom("Snell Roundhand", size: 18)
+        static let marker = Font.custom("Marker Felt", size: 18)
+
+        /// Get a handwriting font by style name
+        static func highlightFont(style: HighlightFontStyle) -> Font {
+            switch style {
+            case .standard:
+                return body
+            case .handwriting:
+                return handwriting
+            case .journal:
+                return journal
+            case .elegant:
+                return elegant
+            case .marker:
+                return marker
+            }
+        }
+    }
+
+    // MARK: - Highlight Font Styles
+    enum HighlightFontStyle: String, CaseIterable, Identifiable {
+        case standard = "Standard"
+        case handwriting = "Handwriting"
+        case journal = "Journal"
+        case elegant = "Elegant"
+        case marker = "Marker"
+
+        var id: String { rawValue }
+
+        var icon: String {
+            switch self {
+            case .standard: return "textformat"
+            case .handwriting: return "pencil"
+            case .journal: return "book"
+            case .elegant: return "paintbrush"
+            case .marker: return "highlighter"
+            }
+        }
+    }
+
+    // MARK: - Highlight Card Styles
+    enum HighlightCardStyle: String, CaseIterable, Identifiable {
+        case classic = "Classic"
+        case warm = "Warm"
+        case cool = "Cool"
+        case nature = "Nature"
+        case sunset = "Sunset"
+        case midnight = "Midnight"
+
+        var id: String { rawValue }
+
+        var backgroundColor: Color {
+            switch self {
+            case .classic: return Color(.secondarySystemBackground)
+            case .warm: return Color(red: 1.0, green: 0.97, blue: 0.9)
+            case .cool: return Color(red: 0.9, green: 0.95, blue: 1.0)
+            case .nature: return Color(red: 0.92, green: 0.98, blue: 0.92)
+            case .sunset: return Color(red: 1.0, green: 0.95, blue: 0.9)
+            case .midnight: return Color(red: 0.15, green: 0.15, blue: 0.25)
+            }
+        }
+
+        var textColor: Color {
+            switch self {
+            case .midnight:
+                return .white
+            case .classic:
+                // Classic uses system colors for proper light/dark mode adaptation
+                return Color.primary
+            default:
+                // Light colored backgrounds need dark text for readability
+                return Color(red: 0.15, green: 0.15, blue: 0.15)
+            }
+        }
+
+        var secondaryTextColor: Color {
+            switch self {
+            case .midnight:
+                return .white.opacity(0.7)
+            case .classic:
+                return Color.secondary
+            default:
+                // Light colored backgrounds need dark secondary text
+                return Color(red: 0.3, green: 0.3, blue: 0.3)
+            }
+        }
+
+        var accentGradient: LinearGradient {
+            switch self {
+            case .classic:
+                return LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+            case .warm:
+                return LinearGradient(colors: [.orange, .red.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            case .cool:
+                return LinearGradient(colors: [.blue, .purple.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            case .nature:
+                return LinearGradient(colors: [.green, .teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+            case .sunset:
+                return LinearGradient(colors: [.pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+            case .midnight:
+                return LinearGradient(colors: [.purple, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+        }
+
+        var patternOpacity: Double {
+            switch self {
+            case .midnight: return 0.1
+            default: return 0.05
+            }
+        }
     }
 
     // MARK: - Spacing

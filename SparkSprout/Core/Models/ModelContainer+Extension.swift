@@ -21,7 +21,8 @@ extension ModelContainer {
         // Use a specific database name for CloudKit mode
         // If you need to reset after schema changes, increment the version number
         // v2: Added Attendee model for contact selection and event sharing
-        let storeURL = URL.documentsDirectory.appending(path: "sparksprout-cloudkit-v2.store")
+        // v3: Added highlightFontStyle and highlightCardStyle to DayEntry
+        let storeURL = URL.documentsDirectory.appending(path: "sparksprout-cloudkit-v3.store")
 
         let configuration = ModelConfiguration(
             schema: schema,
